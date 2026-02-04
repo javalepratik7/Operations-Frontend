@@ -263,8 +263,8 @@ const ProductDashboard = () => {
     { name: "Increff", warehouse: 11500, marketplace: 0 },
     { name: "KV Traders", warehouse: 4200, marketplace: 0 },
     { name: "Processing ", warehouse: 2600, marketplace: 0 },
-    { name: "Amazon FBA", warehouse: 0, marketplace: 5200 },
-    { name: "Flipkart FBF", warehouse: 0, marketplace: 4300 },
+    { name: "FBA", warehouse: 0, marketplace: 5200 },
+    { name: "FBF", warehouse: 0, marketplace: 4300 },
     { name: "Myntra", warehouse: 0, marketplace: 1800 },
     { name: "RK World", warehouse: 0, marketplace: 900 },
   ];
@@ -617,14 +617,14 @@ const ProductDashboard = () => {
                   <Bar
                     dataKey="warehouse"
                     fill="#3b82f6"
-                    barSize={14}
+                    barSize={16}
                     radius={[0, 6, 6, 0]}
                   />
 
                   <Bar
                     dataKey="marketplace"
                     fill="#22c55e"
-                    barSize={14}
+                    barSize={18}
                     radius={[0, 6, 6, 0]}
                   />
                 </BarChart>
@@ -671,7 +671,7 @@ const ProductDashboard = () => {
                     dataKey="units"
                     fill="#00cd6b"
                     radius={[4, 4, 0, 0]}
-                    barSize={40}
+                    barSize={70}
                   />
                 </BarChart>
               </ResponsiveContainer>
