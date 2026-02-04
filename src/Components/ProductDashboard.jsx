@@ -1,22 +1,40 @@
 import React, { useState } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart, Line, CartesianGrid
 } from 'recharts';
-import { 
-  TrendingUp, Package, Truck, Warehouse, 
+import {
+  TrendingUp, Package, Truck, Warehouse,
   AlertTriangle, ShoppingBag, Filter,
-  RefreshCw, ChevronDown, Box
+  RefreshCw, ChevronDown, Box,
+  Building2, Layers, Tags, ShoppingCart 
 } from 'lucide-react';
 import './ProductDashboard.css';
 
 const ProductDashboard = () => {
   const [filters, setFilters] = useState({
-    brand: 'All Brands',
-    vendor: 'All Vendors',
-    location: 'All Locations',
-    category: 'All Categories'
+    brand: {
+      label: 'Brand',
+      value: 'All Brands',
+      icon: Layers
+    },
+    vendor: {
+      label: 'Vendor',
+      value: 'All Vendors',
+      icon: Building2
+    },
+    location: {
+      label: 'Location',
+      value: 'All Locations',
+      icon: Warehouse
+    },
+    category: {
+      label: 'Category',
+      value: 'All Categories',
+      icon: Tags
+    }
   });
+
 
   // Main metrics data
   const metrics = [
@@ -73,7 +91,7 @@ const ProductDashboard = () => {
       value: '4',
       subtitle: '1 Zero | 3 Low',
       color: '#ef4444',
-      icon: <AlertTriangle size={18} />,
+      icon: <AlertTriangle size={22} />,
       bgColor: '#ef44441a',
       borderColor: '#ff0404be'
     },
@@ -81,7 +99,7 @@ const ProductDashboard = () => {
       title: 'AVG DAYS COVER',
       value: '48',
       color: '#3b82f6',
-      icon: <Package size={18} />,
+      icon: <Package size={22} />,
       bgColor: 'rgba(59, 130, 246, 0.1)',
       borderColor: '#3b82f6'
     },
@@ -90,7 +108,7 @@ const ProductDashboard = () => {
       value: '12',
       subtitle: 'Pending Receipts',
       color: '#8b5cf6',
-      icon: <Package size={18} />,
+      icon: <Package size={22} />,
       bgColor: 'rgba(139, 92, 246, 0.1)',
       borderColor: '#3b82f6'
     },
@@ -99,7 +117,7 @@ const ProductDashboard = () => {
       value: '5',
       subtitle: 'Release to vendor',
       color: '#a855f7',
-      icon: <Package size={18} />,
+      icon: <Package size={22} />,
       bgColor: 'hsla(271, 91%, 65%, 0.10)',
       borderColor: '#3b82f6'
     }
@@ -119,7 +137,7 @@ const ProductDashboard = () => {
       poStatus: '—',
       poIntent: '—',
       upcomingStock: { value: '1,500', days: '7d' },
-      stockStatus: 'good',
+      stockStatus: 'low',
       coverStatus: 'good'
     },
     {
@@ -134,8 +152,53 @@ const ProductDashboard = () => {
       poStatus: '—',
       poIntent: { value: '1,175', icon: true },
       upcomingStock: { value: '800', days: '10d' },
+      stockStatus: 'po',
+      coverStatus: 'good'
+    },
+    {
+      brand: 'Urban Yog',
+      sku: '100000662656',
+      product: 'Urban Yog Hair Re...',
+      currentStock: 125,
+      speed: 11,
+      daysCover: 14,
+      inTransit: 0,
+      vendor: 'Assure',
+      poStatus: 'PO Needed',
+      poIntent: { value: '506', icon: true },
+      upcomingStock: { value: '500', days: '5d' },
+      stockStatus: 'low',
+      coverStatus: 'low'
+    },
+    {
+      brand: 'Urban Gabru',
+      sku: '100000688087',
+      product: 'UrbanGabru Hair V...',
+      currentStock: 6300,
+      speed: 85,
+      daysCover: 86,
+      inTransit: 1000,
+      vendor: 'Firstery',
+      poStatus: '—',
+      poIntent: '—',
+      upcomingStock: { value: '2,000', days: '5d' },
       stockStatus: 'good',
       coverStatus: 'good'
+    },
+    {
+      brand: 'Urban Yog',
+      sku: '200000254662',
+      product: 'Urban Yog Facial H...',
+      currentStock: 0,
+      speed: 12,
+      daysCover: 0,
+      inTransit: 300,
+      vendor: 'Brand',
+      poStatus: 'PO Needed',
+      poIntent: { value: '720', icon: true },
+      upcomingStock: { value: '700', days: '14d' },
+      stockStatus: 'zero',
+      coverStatus: 'zero'
     },
     {
       brand: 'Urban Yog',
@@ -197,14 +260,15 @@ const ProductDashboard = () => {
 
   // Inventory Distribution Data
   const distributionData = [
-    { name: 'Incremental', value: 3000, warehouse: true },
-    { name: 'KV Traders', value: 6000, warehouse: false },
-    { name: 'Processing Center', value: 8000, warehouse: false },
-    { name: 'Amazon FBA', value: 12000, warehouse: false },
-    { name: 'Flipkart FBP', value: 9000, warehouse: false },
-    { name: 'Myntra', value: 6000, warehouse: false },
-    { name: 'RK World', value: 4000, warehouse: false }
+    { name: "Increff", warehouse: 11500, marketplace: 0 },
+    { name: "KV Traders", warehouse: 4200, marketplace: 0 },
+    { name: "Processing ", warehouse: 2600, marketplace: 0 },
+    { name: "Amazon FBA", warehouse: 0, marketplace: 5200 },
+    { name: "Flipkart FBF", warehouse: 0, marketplace: 4300 },
+    { name: "Myntra", warehouse: 0, marketplace: 1800 },
+    { name: "RK World", warehouse: 0, marketplace: 900 },
   ];
+
 
   // Quick Commerce Data
   const commerceData = [
@@ -223,7 +287,7 @@ const ProductDashboard = () => {
       {/* Header */}
       <div className="dashboard-header">
         <div className="header-content">
-            <Box size={24} className="logo-icon-title" /> 
+          <Box size={24} className="logo-icon-title" />
           <div className="logo-title">
             <h2 className='title-text'>Product Availability Dashboard</h2>
             <p className="subtitle">Real-time inventory tracking across all channels</p>
@@ -243,12 +307,12 @@ const ProductDashboard = () => {
         <div className="metrics-section">
           <div className="metrics-grid">
             {metrics.map((metric, index) => (
-              <div 
-                key={index} 
-                className="metric-card" 
-                style={{ 
+              <div
+                key={index}
+                className="metric-card"
+                style={{
                   // backgroundColor: metric.bgColor,
-                  borderLeft: `3px solid ${metric.borderColor}`
+                  borderLeft: `4px solid ${metric.borderColor}`
                 }}
               >
                 <div className="metric-header">
@@ -274,26 +338,28 @@ const ProductDashboard = () => {
         {/* Alert Metrics */}
         <div className="alert-metrics-section">
           {alertMetrics.map((metric, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="alert-metric-card"
-              style={{ 
-                borderLeft: `3px solid ${metric.borderColor}`,
+              style={{
+                borderLeft: `4px solid ${metric.borderColor}`,
                 // backgroundColor: metric.bgColor ,
               }}
             >
-              <div className="alert-metric-header">
-                <div className="alert-icon" style={{ color: metric.color }}>
-                  {metric.icon}
+              <div className="alert-icon" style={{ color: metric.color, backgroundColor: `${metric.color}1A` }}>
+                {metric.icon}
+              </div>
+              <div>
+                <div className="alert-metric-header">
+                  <span className="metric-label">{metric.title}</span>
                 </div>
-                <span className="metric-label">{metric.title}</span>
+                <div className="alert-metric-value" style={{ color: "white" }}>
+                  {metric.value}
+                </div>
+                {metric.subtitle && (
+                  <div className="alert-metric-subtitle">{metric.subtitle}</div>
+                )}
               </div>
-              <div className="alert-metric-value" style={{ color: "white" }}>
-                {metric.value}
-              </div>
-              {metric.subtitle && (
-                <div className="alert-metric-subtitle">{metric.subtitle}</div>
-              )}
             </div>
           ))}
         </div>
@@ -304,127 +370,142 @@ const ProductDashboard = () => {
           <div className="filters-section">
             <div className="section-header">
               <h3>
-                <Filter size={18} />
+                <Filter size={18} color='blue' />
                 Filters
               </h3>
             </div>
             <div className="filters-grid">
-              {Object.entries(filters).map(([key, value]) => (
-                <div key={key} className="filter-group">
-                  <label>
-                    <span className="filter-icon">◉</span>
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </label>
-                  <div className="select-wrapper">
-                    <select 
-                      value={value}
-                      onChange={(e) => handleFilterChange(key, e.target.value)}
-                    >
-                      <option>{value}</option>
-                    </select>
-                    <ChevronDown size={14} />
+              {Object.entries(filters).map(([key, filter]) => {
+                const Icon = filter.icon;
+
+                return (
+                  <div key={key} className="filter-group">
+                    <label>
+                      <Icon size={14} className="filter-icon" />
+                      {filter.label}
+                    </label>
+
+                    <div className="select-wrapper">
+                      <select
+                        value={filter.value}
+                        onChange={(e) => handleFilterChange(key, e.target.value)}
+                      >
+                        <option>{filter.value}</option>
+                      </select>
+                      <ChevronDown size={14} />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* SKU Table */}
           <div className="table-section">
-          <div className="section-header">
-            <h3>SKU Inventory Details</h3>
-            <div className="legend">
-              <span className="legend-item">
-                <span className="legend-dot zero"></span>
-                Zero Stock
-              </span>
-              <span className="legend-item">
-                <span className="legend-dot low"></span>
-                Low Cover
-              </span>
-              <span className="legend-item">
-                <span className="legend-dot po"></span>
-                PO Required
-              </span>
+            <div className="section-header">
+              <h3>SKU Inventory Details</h3>
+              <div className="legend">
+                <span className="legend-item">
+                  <span className="legend-dot zero"></span>
+                  Zero Stock
+                </span>
+                <span className="legend-item">
+                  <span className="legend-dot low"></span>
+                  Low Cover
+                </span>
+                <span className="legend-item">
+                  <span className="legend-dot po"></span>
+                  PO Required
+                </span>
+              </div>
+            </div>
+            <div className="table-container">
+              <table className="inventory-table">
+                <thead>
+                  <tr>
+                    <th>Brand</th>
+                    <th>SKU</th>
+                    <th>Product</th>
+                    <th>Current Stock</th>
+                    <th>Speed</th>
+                    <th>Days Cover</th>
+                    <th>In Transit</th>
+                    <th>Vendor</th>
+                    <th>PO Status</th>
+                    <th>PO Intent</th>
+                    <th>Upcoming Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {skuData.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`rowHeight ${row.stockStatus === 'zero'
+                          ? 'row-alert-zero'
+                          : row.stockStatus === 'low'
+                            ? 'row-alert-low'
+                            : row.stockStatus === 'po'
+                              ? 'row-alert-po'
+                              : ''
+                        }`}
+                    >
+                      <td>
+                        <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : 'yog'}`}>
+                          {row.brand}
+                        </span>
+                      </td>
+                      <td className="sku-cell">{row.sku}</td>
+                      <td className="product-cell">{row.product}</td>
+                      <td>
+                        <span className={`stock-value ${row.stockStatus}`}>
+                          {row.currentStock.toLocaleString()}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="speed-indicator">
+                          <span className="speed-value">{row.speed}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`days-cover ${row.coverStatus}`}>
+                          {row.daysCover}
+                        </span>
+                      </td>
+                      <td className="transit-cell">{row.inTransit.toLocaleString()}</td>
+                      <td className="vendor-cell">{row.vendor}</td>
+                      <td>
+                        {row.poStatus === 'PO Needed' ? (
+                          <button className="po-status-btn">
+                            <ShoppingCart size={12}  color='black'/>
+                            PO Needed
+                          </button>
+                        ) : (
+                          <span className="po-status-empty">{row.poStatus}</span>
+                        )}
+                      </td>
+                      <td>
+                        {typeof row.poIntent === 'object' && row.poIntent.icon ? (
+                          <span className="po-intent-value">
+                            <TrendingUp size={12} />
+                            {row.poIntent.value}
+                          </span>
+                        ) : (
+                          <span className="po-intent-empty">{row.poIntent}</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="upcoming-stock">
+                          <Package size={12} />
+                          {row.upcomingStock.value}
+                          <span className="upcoming-days">in {row.upcomingStock.days}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="table-container">
-            <table className="inventory-table">
-              <thead>
-                <tr>
-                  <th>Brand</th>
-                  <th>SKU</th>
-                  <th>Product</th>
-                  <th>Current Stock</th>
-                  <th>Speed</th>
-                  <th>Days Cover</th>
-                  <th>In Transit</th>
-                  <th>Vendor</th>
-                  <th>PO Status</th>
-                  <th>PO Intent</th>
-                  <th>Upcoming Stock</th>
-                </tr>
-              </thead>
-              <tbody>
-                {skuData.map((row, index) => (
-                  <tr key={index} className={row.stockStatus === 'zero' ? 'row-alert-zero' : row.stockStatus === 'low' ? 'row-alert-low' : ''}>
-                    <td>
-                      <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : 'yog'}`}>
-                        {row.brand}
-                      </span>
-                    </td>
-                    <td className="sku-cell">{row.sku}</td>
-                    <td className="product-cell">{row.product}</td>
-                    <td>
-                      <span className={`stock-value ${row.stockStatus}`}>
-                        {row.currentStock.toLocaleString()}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="speed-indicator">
-                        <span className="speed-value">{row.speed}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`days-cover ${row.coverStatus}`}>
-                        {row.daysCover}
-                      </span>
-                    </td>
-                    <td className="transit-cell">{row.inTransit.toLocaleString()}</td>
-                    <td className="vendor-cell">{row.vendor}</td>
-                    <td>
-                      {row.poStatus === 'PO Needed' ? (
-                        <button className="po-status-btn">
-                          <ShoppingBag size={12} />
-                          PO Needed
-                        </button>
-                      ) : (
-                        <span className="po-status-empty">{row.poStatus}</span>
-                      )}
-                    </td>
-                    <td>
-                      {typeof row.poIntent === 'object' && row.poIntent.icon ? (
-                        <span className="po-intent-value">
-                          <TrendingUp size={12} />
-                          {row.poIntent.value}
-                        </span>
-                      ) : (
-                        <span className="po-intent-empty">{row.poIntent}</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="upcoming-stock">
-                        <Package size={12} />
-                        {row.upcomingStock.value}
-                        <span className="upcoming-days">in {row.upcomingStock.days}</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
         </div>
 
         {/* Charts Section */}
@@ -441,30 +522,30 @@ const ProductDashboard = () => {
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 11 }}
                   />
-                  <YAxis 
+                  <YAxis
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 11 }}
                     domain={[0, 80]}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1f2937',
                       border: '1px solid #374151',
                       borderRadius: '6px',
                       color: '#fff'
                     }}
                   />
-                  <Line 
+                  <Line
                     type="monotone"
-                    dataKey="days" 
-                    stroke="#3b82f6" 
+                    dataKey="days"
+                    stroke="#3b82f6"
                     strokeWidth={2}
                     dot={{ fill: '#3b82f6', r: 4 }}
                     activeDot={{ r: 6 }}
@@ -491,43 +572,63 @@ const ProductDashboard = () => {
             </div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart 
+                <BarChart
                   data={distributionData}
-                  layout="horizontal"
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
+                  barCategoryGap={10}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" horizontal={false} />
-                  <XAxis 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#2a2e3a"
+                    horizontal={false}
+                  />
+
+                  <XAxis
                     type="number"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    tick={{ fill: "#6b7280", fontSize: 11 }}
                     domain={[0, 12000]}
                   />
-                  <YAxis 
+
+                  <YAxis
                     type="category"
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#9ca3af', fontSize: 10 }}
-                    width={95}
+                    tick={{ fill: "#9ca3af", fontSize: 11 }}
+                    width={90}
+                    interval={0}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
-                      border: '1px solid #374151',
-                      borderRadius: '6px',
-                      color: '#fff'
+
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      border: "1px solid #334155",
+                      borderRadius: 8,
+                      color: "#fff",
+                      fontSize: 12,
                     }}
                     formatter={(value) => value.toLocaleString()}
                   />
-                  <Bar 
-                    dataKey="value" 
+
+                  <Bar
+                    dataKey="warehouse"
                     fill="#3b82f6"
-                    radius={[0, 4, 4, 0]}
                     barSize={14}
+                    radius={[0, 6, 6, 0]}
+                  />
+
+                  <Bar
+                    dataKey="marketplace"
+                    fill="#22c55e"
+                    barSize={14}
+                    radius={[0, 6, 6, 0]}
                   />
                 </BarChart>
+
               </ResponsiveContainer>
             </div>
           </div>
@@ -545,30 +646,30 @@ const ProductDashboard = () => {
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={commerceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 10 }}
                     angle={0}
                   />
-                  <YAxis 
+                  <YAxis
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 11 }}
                     domain={[0, 28]}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1f2937',
                       border: '1px solid #374151',
                       borderRadius: '6px',
                       color: '#fff'
                     }}
                   />
-                  <Bar 
-                    dataKey="units" 
-                    fill="#f59e0b"
+                  <Bar
+                    dataKey="units"
+                    fill="#00cd6b"
                     radius={[4, 4, 0, 0]}
                     barSize={40}
                   />
