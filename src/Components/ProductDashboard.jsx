@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid
@@ -16,32 +16,163 @@ const ProductDashboard = () => {
     brand: {
       label: 'Brand',
       value: 'All Brands',
-      icon: Layers
+      icon: Layers,
+      options: []
     },
     vendor: {
       label: 'Vendor',
       value: 'All Vendors',
-      icon: Building2
+      icon: Building2,
+      options: []
     },
     location: {
       label: 'Location',
       value: 'All Locations',
-      icon: Warehouse
+      icon: Warehouse,
+      options: []
     },
     category: {
       label: 'Category',
       value: 'All Categories',
-      icon: Tags
+      icon: Tags,
+      options: []
     }
   });
 
+  const [apiData, setApiData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Main metrics data
-  const metrics = [
+  // Helper functions - defined first
+  const formatNumber = (num) => {
+    if (!num && num !== 0) return '0';
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toLocaleString();
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return '₹0';
+    if (amount >= 10000000) {
+      return `₹${(amount / 10000000).toFixed(1)}Cr`;
+    } else if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(1)}L`;
+    }
+    return `₹${amount.toLocaleString()}`;
+  };
+
+  const getStockAlertSubtitle = (skuDetails) => {
+    if (!skuDetails) return '0 Zero | 0 Low';
+    const zeroStock = skuDetails.filter(item => item.current_stock === 0).length;
+    const lowStock = skuDetails.filter(item => 
+      item.inventory_status === 'LOW_STOCK' && item.current_stock > 0
+    ).length;
+    return `${zeroStock} Zero | ${lowStock} Low`;
+  };
+
+  const getBrandFromEAN = (ean) => {
+    if (!ean) return 'Unknown Brand';
+    // Simple mapping - adjust based on your actual EAN patterns
+    if (ean.startsWith('890435')) return 'Urban Gabru';
+    if (ean.startsWith('890913')) return 'Seoul Skin';
+    if (ean.startsWith('890572')) return 'Urban Yog';
+    if (ean.startsWith('300000')) return 'Makemeebold';
+    return 'Unknown Brand';
+  };
+
+  const getVendorFromStatus = (item) => {
+    if (!item || !item.ean_code) return 'Unknown';
+    // Placeholder - adjust based on your actual vendor data
+    if (item.ean_code.startsWith('890435')) return 'Hive';
+    if (item.ean_code.startsWith('890913')) return 'Merhaki';
+    if (item.ean_code.startsWith('300000')) return 'Brand';
+    return 'Assure';
+  };
+
+  const calculatePOIntent = (item) => {
+    if (!item) return '0';
+    // Calculate PO intent based on safety stock and current stock
+    const drr = parseFloat(item.drr_30d) || 0;
+    const safetyStock = parseFloat(item.safety_stock_days || 0) * drr;
+    const poIntent = Math.max(0, safetyStock - (item.current_stock || 0));
+    return formatNumber(Math.round(poIntent));
+  };
+
+  const formatDateForChart = (dateString, index) => {
+    if (!dateString) return `Day ${index + 1}`;
+    try {
+      const date = new Date(dateString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      return `${month} ${day}`;
+    } catch (e) {
+      return `Day ${index + 1}`;
+    }
+  };
+
+  const truncateString = (str, maxLength) => {
+    if (!str) return '';
+    if (str.length <= maxLength) return str;
+    return str.substring(0, maxLength - 3) + '...';
+  };
+
+  // Fetch data from API
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/planning');
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data = await response.json();
+      setApiData(data);
+      
+      // Update filters with API data
+      if (data.filters) {
+        setFilters(prev => ({
+          ...prev,
+          brand: {
+            ...prev.brand,
+            options: data.filters.brands || []
+          },
+          vendor: {
+            ...prev.vendor,
+            options: data.filters.vendors || []
+          },
+          location: {
+            ...prev.location,
+            options: data.filters.locations?.filter(loc => loc) || [] // Remove null values
+          },
+          category: {
+            ...prev.category,
+            options: data.filters.categories || []
+          }
+        }));
+      }
+      
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Main metrics data from API
+  const metrics = apiData ? [
     {
       title: 'TOTAL STOCK',
-      value: '35,975',
-      change: '1.2% vs last week',
+      value: formatNumber(apiData.summary.total_stock),
+      // change: '1.2% vs last week',
       icon: <Box size={20} />,
       color: '#3b82f6',
       bgColor: 'rgba(59, 130, 246, 0.1)',
@@ -49,7 +180,7 @@ const ProductDashboard = () => {
     },
     {
       title: 'IN TRANSIT',
-      value: '5,550',
+      value: formatNumber(apiData.summary.in_transit),
       icon: <Truck size={20} />,
       color: '#3b82f6',
       bgColor: 'rgba(59, 130, 246, 0.1)',
@@ -57,7 +188,7 @@ const ProductDashboard = () => {
     },
     {
       title: 'CURRENT STOCK',
-      value: '28,655',
+      value: formatNumber(apiData.summary.current_stock),
       subtitle: 'WH + Marketplace',
       icon: <Warehouse size={20} />,
       color: '#10b981',
@@ -66,7 +197,7 @@ const ProductDashboard = () => {
     },
     {
       title: 'OVER INVENTORY',
-      value: '400',
+      value: formatNumber(apiData.summary.over_inventory),
       subtitle: '> 90 Days Cover',
       icon: <TrendingUp size={20} />,
       color: '#f59e0b',
@@ -75,21 +206,21 @@ const ProductDashboard = () => {
     },
     {
       title: 'INVENTORY (COGS)',
-      value: '₹123.5L',
+      value: formatCurrency(apiData.summary.inventory_cogs),
       subtitle: 'Total Value',
       icon: <ShoppingBag size={20} />,
       color: '#3b82f6',
       bgColor: 'rgba(59, 130, 246, 0.1)',
       borderColor: '#3b82f6'
     }
-  ];
+  ] : [];
 
-  // Alert metrics
-  const alertMetrics = [
+  // Alert metrics from API
+  const alertMetrics = apiData ? [
     {
       title: 'STOCK ALERT',
-      value: '4',
-      subtitle: '1 Zero | 3 Low',
+      value: apiData.summary.stock_alert?.toString() || '0',
+      subtitle: getStockAlertSubtitle(apiData.sku_inventory_details),
       color: '#ef4444',
       icon: <AlertTriangle size={22} />,
       bgColor: '#ef44441a',
@@ -97,7 +228,7 @@ const ProductDashboard = () => {
     },
     {
       title: 'AVG DAYS COVER',
-      value: '48',
+      value: apiData.summary.avg_days_cover?.toString() || '0',
       color: '#3b82f6',
       icon: <Package size={22} />,
       bgColor: 'rgba(59, 130, 246, 0.1)',
@@ -105,7 +236,7 @@ const ProductDashboard = () => {
     },
     {
       title: 'UPCOMING STOCK',
-      value: '12',
+      value: formatNumber(apiData.summary.upcoming_stock),
       subtitle: 'Pending Receipts',
       color: '#8b5cf6',
       icon: <Package size={22} />,
@@ -114,173 +245,127 @@ const ProductDashboard = () => {
     },
     {
       title: 'PO REQUIRED',
-      value: '5',
+      value: apiData.summary.po_required?.toString() || '0',
       subtitle: 'Release to vendor',
       color: '#a855f7',
       icon: <Package size={22} />,
       bgColor: 'hsla(271, 91%, 65%, 0.10)',
       borderColor: '#3b82f6'
     }
-  ];
+  ] : [];
 
-  // SKU Data
-  const skuData = [
-    {
-      brand: 'Urban Gabru',
-      sku: '100000661934',
-      product: 'Urbangabru Hair R...',
-      currentStock: 3800,
-      speed: 73,
-      daysCover: 69,
-      inTransit: 500,
-      vendor: 'Hive',
-      poStatus: '—',
-      poIntent: '—',
-      upcomingStock: { value: '1,500', days: '7d' },
-      stockStatus: 'low',
-      coverStatus: 'good'
-    },
-    {
-      brand: 'Urban Gabru',
-      sku: '100000613704',
-      product: 'UrbanGabru Hair V...',
-      currentStock: 1180,
-      speed: 47,
-      daysCover: 35,
-      inTransit: 200,
-      vendor: 'Merhaki',
-      poStatus: '—',
-      poIntent: { value: '1,175', icon: true },
-      upcomingStock: { value: '800', days: '10d' },
-      stockStatus: 'po',
-      coverStatus: 'good'
-    },
-    {
-      brand: 'Urban Yog',
-      sku: '100000662656',
-      product: 'Urban Yog Hair Re...',
-      currentStock: 125,
-      speed: 11,
-      daysCover: 14,
-      inTransit: 0,
-      vendor: 'Assure',
-      poStatus: 'PO Needed',
-      poIntent: { value: '506', icon: true },
-      upcomingStock: { value: '500', days: '5d' },
-      stockStatus: 'low',
-      coverStatus: 'low'
-    },
-    {
-      brand: 'Urban Gabru',
-      sku: '100000688087',
-      product: 'UrbanGabru Hair V...',
-      currentStock: 6300,
-      speed: 85,
-      daysCover: 86,
-      inTransit: 1000,
-      vendor: 'Firstery',
-      poStatus: '—',
-      poIntent: '—',
-      upcomingStock: { value: '2,000', days: '5d' },
-      stockStatus: 'good',
-      coverStatus: 'good'
-    },
-    {
-      brand: 'Urban Yog',
-      sku: '200000254662',
-      product: 'Urban Yog Facial H...',
-      currentStock: 0,
-      speed: 12,
-      daysCover: 0,
-      inTransit: 300,
-      vendor: 'Brand',
-      poStatus: 'PO Needed',
-      poIntent: { value: '720', icon: true },
-      upcomingStock: { value: '700', days: '14d' },
-      stockStatus: 'zero',
-      coverStatus: 'zero'
-    },
-    {
-      brand: 'Urban Yog',
-      sku: '100000662656',
-      product: 'Urban Yog Hair Re...',
-      currentStock: 125,
-      speed: 11,
-      daysCover: 14,
-      inTransit: 0,
-      vendor: 'Assure',
-      poStatus: 'PO Needed',
-      poIntent: { value: '506', icon: true },
-      upcomingStock: { value: '500', days: '5d' },
-      stockStatus: 'low',
-      coverStatus: 'low'
-    },
-    {
-      brand: 'Urban Gabru',
-      sku: '100000688087',
-      product: 'UrbanGabru Hair V...',
-      currentStock: 6300,
-      speed: 85,
-      daysCover: 86,
-      inTransit: 1000,
-      vendor: 'Firstery',
-      poStatus: '—',
-      poIntent: '—',
-      upcomingStock: { value: '2,000', days: '5d' },
-      stockStatus: 'good',
-      coverStatus: 'good'
-    },
-    {
-      brand: 'Urban Yog',
-      sku: '200000254662',
-      product: 'Urban Yog Facial H...',
-      currentStock: 0,
-      speed: 12,
-      daysCover: 0,
-      inTransit: 300,
-      vendor: 'Brand',
-      poStatus: 'PO Needed',
-      poIntent: { value: '720', icon: true },
-      upcomingStock: { value: '700', days: '14d' },
-      stockStatus: 'zero',
-      coverStatus: 'zero'
-    }
-  ];
+// Transform API SKU data to match table structure
+const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
+  // Use inventory_status from API directly, but map to your frontend statuses
+  let stockStatus = 'good';
+  
+  // Map API statuses to your frontend statuses
+  switch(item.inventory_status) {
+    case 'LOW_STOCK':
+      stockStatus = 'low';
+      break;
+    case 'PO_REQUIRED':
+      stockStatus = 'po';
+      break;
+    case 'ZERO_STOCK': // If API has this status
+    default:
+      if (item.current_stock === 0) {
+        stockStatus = 'zero';
+      }
+      break;
+  }
 
-  // Days Cover Trend Data
-  const trendData = [
-    { name: 'Jan 1', days: 65 },
-    { name: 'Jan 8', days: 58 },
-    { name: 'Jan 15', days: 52 },
-    { name: 'Jan 22', days: 45 },
-    { name: 'Jan 29', days: 48 },
-    { name: 'Feb 5', days: 50 },
-    { name: 'Feb 12', days: 48 }
-  ];
+  // Determine cover status based on days_of_cover
+  let coverStatus = 'good';
+  const daysCover = parseFloat(item.days_of_cover) || 0;
+  if (daysCover <= 0) coverStatus = 'zero';
+  else if (daysCover <= 14) coverStatus = 'low';
 
-  // Inventory Distribution Data
-  const distributionData = [
-    { name: "Increff", warehouse: 11500, marketplace: 0 },
-    { name: "KV Traders", warehouse: 4200, marketplace: 0 },
-    { name: "Processing ", warehouse: 2600, marketplace: 0 },
-    { name: "FBA", warehouse: 0, marketplace: 5200 },
-    { name: "FBF", warehouse: 0, marketplace: 4300 },
-    { name: "Myntra", warehouse: 0, marketplace: 1800 },
-    { name: "RK World", warehouse: 0, marketplace: 900 },
-  ];
+  // Generate brand name from EAN
+  const brand = getBrandFromEAN(item.ean_code);
+  
+  return {
+    brand: brand,
+    sku: item.ean_code || 'N/A',
+    product: truncateString(item.ean_code, 20), // Using EAN as product name placeholder
+    currentStock: item.current_stock || 0,
+    speed: Math.round(parseFloat(item.drr_30d) || 0), // Using DRR as speed
+    daysCover: Math.round(daysCover),
+    inTransit: item.in_transit_stock || 0,
+    vendor: getVendorFromStatus(item),
+    poStatus: item.inventory_status === 'PO_REQUIRED' ? 'PO Needed' : '—',
+    poIntent: item.inventory_status === 'PO_REQUIRED' ? { value: calculatePOIntent(item), icon: true } : '—',
+    upcomingStock: { 
+      value: formatNumber(item.upcoming_stock), 
+      days: '7d' // Placeholder - you might want to calculate this
+    },
+    stockStatus: stockStatus,
+    coverStatus: coverStatus
+  };
+}) : [];
 
+  // Days Cover Trend Data from API
+  const trendData = apiData ? (apiData.summary.days_cover_trend || []).map((item, index) => ({
+    name: formatDateForChart(item.snapshot_date, index),
+    days: parseFloat(item.avg_days_cover) || 0
+  })) : [];
 
-  // Quick Commerce Data
-  const commerceData = [
-    { name: 'Instamart', units: 28 },
-    { name: 'Zepo', units: 21 },
-    { name: 'Blinkit B2B', units: 14 },
-    { name: 'Blinkit B2C', units: 7 }
-  ];
+  // Inventory Distribution Data from API
+  const distributionData = apiData ? [
+    { name: "Increff", warehouse: apiData.summary.inventory_distribution?.increff || 0, marketplace: 0 },
+    { name: "KV Traders", warehouse: apiData.summary.inventory_distribution?.kv_traders || 0, marketplace: 0 },
+    { name: "Processing", warehouse: apiData.summary.inventory_distribution?.processing || 0, marketplace: 0 },
+    { name: "FBA", warehouse: 0, marketplace: apiData.summary.inventory_distribution?.fba || 0 },
+    { name: "FBF", warehouse: 0, marketplace: apiData.summary.inventory_distribution?.fbf || 0 },
+    { name: "Myntra", warehouse: 0, marketplace: apiData.summary.inventory_distribution?.myntra || 0 },
+    { name: "RK World", warehouse: 0, marketplace: apiData.summary.inventory_distribution?.rk_world || 0 },
+  ] : [];
+
+  // Quick Commerce Data from API
+  const commerceData = apiData ? [
+    { name: 'Instamart', units: apiData.summary.quick_commerce_speed?.instamart || 0 },
+    { name: 'Zepo', units: apiData.summary.quick_commerce_speed?.zepto || 0 },
+    { name: 'Blinkit B2B', units: apiData.summary.quick_commerce_speed?.blinkit_b2b || 0 },
+    { name: 'Blinkit B2C', units: apiData.summary.quick_commerce_speed?.blinkit_b2c || 0 }
+  ] : [];
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => ({ 
+      ...prev, 
+      [key]: { ...prev[key], value } 
+    }));
   };
+
+  const handleRefresh = () => {
+    fetchData();
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error-container">
+          <AlertTriangle size={48} color="#ef4444" />
+          <h3>Error Loading Data</h3>
+          <p>{error}</p>
+          <button className="btn btn-refresh" onClick={fetchData}>
+            <RefreshCw size={16} />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -294,8 +379,10 @@ const ProductDashboard = () => {
           </div>
         </div>
         <div className="header-actions">
-          <div className="last-updated">Last updated: 4:05:23 PM</div>
-          <button className="btn btn-refresh">
+          <div className="last-updated">
+            Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+          <button className="btn btn-refresh" onClick={handleRefresh}>
             <RefreshCw size={16} />
             Refresh
           </button>
@@ -390,7 +477,12 @@ const ProductDashboard = () => {
                         value={filter.value}
                         onChange={(e) => handleFilterChange(key, e.target.value)}
                       >
-                        <option>{filter.value}</option>
+                        <option value={`All ${filter.label}`}>All {filter.label}</option>
+                        {filter.options && filter.options.map((option, index) => (
+                          <option key={index} value={option || 'Unknown'}>
+                            {option || 'Unknown'}
+                          </option>
+                        ))}
                       </select>
                       <ChevronDown size={14} />
                     </div>
@@ -450,7 +542,7 @@ const ProductDashboard = () => {
                         }`}
                     >
                       <td>
-                        <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : 'yog'}`}>
+                        <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : row.brand.includes('Yog') ? 'yog' : row.brand.includes('Seoul') ? 'seoul' : row.brand.includes('Makemeebold') ? 'makemeebold' : 'other'}`}>
                           {row.brand}
                         </span>
                       </td>
@@ -589,7 +681,7 @@ const ProductDashboard = () => {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: "#6b7280", fontSize: 11 }}
-                    domain={[0, 12000]}
+                    domain={[0, Math.max(...distributionData.map(d => Math.max(d.warehouse, d.marketplace))) * 1.1 || 1000]}
                   />
 
                   <YAxis
@@ -657,7 +749,7 @@ const ProductDashboard = () => {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 11 }}
-                    domain={[0, 28]}
+                    domain={[0, Math.max(...commerceData.map(d => d.units)) * 1.2 || 100]}
                   />
                   <Tooltip
                     contentStyle={{
