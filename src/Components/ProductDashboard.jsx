@@ -519,7 +519,7 @@ const ProductDashboard = () => {
               </div>
             </div>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
                   <XAxis
@@ -571,11 +571,11 @@ const ProductDashboard = () => {
               </div>
             </div>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={distributionData}
                   layout="vertical"
-                  margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
+                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                   barCategoryGap={10}
                 >
                   <CartesianGrid
@@ -643,7 +643,7 @@ const ProductDashboard = () => {
               </div>
             </div>
             <div className="commerce-container">
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={commerceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
                   <XAxis
