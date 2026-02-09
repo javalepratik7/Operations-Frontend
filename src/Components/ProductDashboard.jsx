@@ -10,6 +10,7 @@ import {
   Building2, Layers, Tags, ShoppingCart 
 } from 'lucide-react';
 import './ProductDashboard.css';
+import './Pagination.css';
 
 const ProductDashboard = () => {
   const [filters, setFilters] = useState({
@@ -42,6 +43,8 @@ const ProductDashboard = () => {
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
   // Helper functions - defined first
   const formatNumber = (num) => {
@@ -120,32 +123,57 @@ const ProductDashboard = () => {
     return str.substring(0, maxLength - 3) + '...';
   };
 
-  // Fetch data from API
-  const fetchData = async () => {
+  // Fetch data from API with filter parameters
+  const fetchData = async (filterParams = {}, page = 1, limit = 15) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/planning');
+      
+      // Build query string from filter parameters
+      const queryParams = new URLSearchParams();
+      
+      if (filterParams.brand && filterParams.brand !== 'All Brands') {
+        queryParams.append('brand', filterParams.brand);
+      }
+      if (filterParams.vendor && filterParams.vendor !== 'All Vendors') {
+        queryParams.append('vendor', filterParams.vendor);
+      }
+      if (filterParams.location && filterParams.location !== 'All Locations') {
+        queryParams.append('location', filterParams.location);
+      }
+      if (filterParams.category && filterParams.category !== 'All Categories') {
+        queryParams.append('category', filterParams.category);
+      }
+      
+      // Add pagination parameters
+      queryParams.append('page', page);
+      queryParams.append('limit', limit);
+      
+      const queryString = queryParams.toString();
+      const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
+      
+      console.log('Fetching data from:', url); // Debug log
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }
       const data = await response.json();
       setApiData(data);
       
-      // Update filters with API data
+      // ALWAYS update filter options from API response (for cascading filters)
       if (data.filters) {
         setFilters(prev => ({
-          ...prev,
           brand: {
             ...prev.brand,
             options: data.filters.brands || []
           },
           vendor: {
             ...prev.vendor,
-            options: data.filters.vendors || []
+            options: data.filters.vendors?.filter(v => v && v.trim() !== '') || []
           },
           location: {
             ...prev.location,
-            options: data.filters.locations?.filter(loc => loc) || [] // Remove null values
+            options: data.filters.locations?.filter(loc => loc) || []
           },
           category: {
             ...prev.category,
@@ -281,20 +309,44 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
   if (daysCover <= 0) coverStatus = 'zero';
   else if (daysCover <= 14) coverStatus = 'low';
 
-  // Generate brand name from EAN
-  const brand = getBrandFromEAN(item.ean_code);
+  // Use brand from API response, fallback to EAN-based detection
+  const brand = item.brand || getBrandFromEAN(item.ean_code);
+  
+  // Determine PO Intent - use po_intent_units from API if available
+  let poIntentDisplay = '—';
+  let poIntentIcon = false;
+  
+  if (item.po_intent_units !== undefined && item.po_intent_units !== null) {
+    // If po_intent_units exists and has a value
+    const poIntentValue = parseFloat(item.po_intent_units);
+    if (!isNaN(poIntentValue) && poIntentValue > 0) {
+      poIntentDisplay = {
+        value: formatNumber(Math.round(poIntentValue)),
+        icon: true
+      };
+      poIntentIcon = true;
+    }
+  } else if (item.inventory_status === 'PO_REQUIRED') {
+    // Fallback to calculation if po_intent_units is not available but PO is required
+    poIntentDisplay = {
+      value: calculatePOIntent(item),
+      icon: true
+    };
+    poIntentIcon = true;
+  }
   
   return {
     brand: brand,
     sku: item.ean_code || 'N/A',
-    product: truncateString(item.ean_code, 20), // Using EAN as product name placeholder
+    product: truncateString(item.product_title || item.ean_code, 30), // Use product_title from API
     currentStock: item.current_stock || 0,
     speed: Math.round(parseFloat(item.drr_30d) || 0), // Using DRR as speed
     daysCover: Math.round(daysCover),
     inTransit: item.in_transit_stock || 0,
-    vendor: getVendorFromStatus(item),
+    vendor: item.vendor_name || getVendorFromStatus(item), // Use vendor_name from API
     poStatus: item.inventory_status === 'PO_REQUIRED' ? 'PO Needed' : '—',
-    poIntent: item.inventory_status === 'PO_REQUIRED' ? { value: calculatePOIntent(item), icon: true } : '—',
+    poIntent: poIntentDisplay,
+    poIntentIcon: poIntentIcon, // Add this flag to check if icon should be shown
     upcomingStock: { 
       value: formatNumber(item.upcoming_stock), 
       days: '7d' // Placeholder - you might want to calculate this
@@ -330,14 +382,72 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
   ] : [];
 
   const handleFilterChange = (key, value) => {
+    // Update the filter state
     setFilters(prev => ({ 
       ...prev, 
       [key]: { ...prev[key], value } 
     }));
+    
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+    
+    // Build filter parameters object
+    const updatedFilters = {
+      ...filters,
+      [key]: { ...filters[key], value }
+    };
+    
+    const filterParams = {
+      brand: updatedFilters.brand.value,
+      vendor: updatedFilters.vendor.value,
+      location: updatedFilters.location.value,
+      category: updatedFilters.category.value
+    };
+    
+    // Fetch data with new filters and reset to page 1
+    fetchData(filterParams, 1, itemsPerPage);
   };
 
   const handleRefresh = () => {
-    fetchData();
+    // Get current filter values
+    const filterParams = {
+      brand: filters.brand.value,
+      vendor: filters.vendor.value,
+      location: filters.location.value,
+      category: filters.category.value
+    };
+    
+    fetchData(filterParams, currentPage, itemsPerPage);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    
+    const filterParams = {
+      brand: filters.brand.value,
+      vendor: filters.vendor.value,
+      location: filters.location.value,
+      category: filters.category.value
+    };
+    
+    fetchData(filterParams, newPage, itemsPerPage);
+    
+    // Scroll to top of table
+    document.querySelector('.table-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1); // Reset to first page
+    
+    const filterParams = {
+      brand: filters.brand.value,
+      vendor: filters.vendor.value,
+      location: filters.location.value,
+      category: filters.category.value
+    };
+    
+    fetchData(filterParams, 1, newLimit);
   };
 
   if (loading) {
@@ -477,7 +587,7 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                         value={filter.value}
                         onChange={(e) => handleFilterChange(key, e.target.value)}
                       >
-                        <option value={`All ${filter.label}`}>All {filter.label}</option>
+                        <option value={`All ${filter.label}s`}>All {filter.label}s</option>
                         {filter.options && filter.options.map((option, index) => (
                           <option key={index} value={option || 'Unknown'}>
                             {option || 'Unknown'}
@@ -576,15 +686,15 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                         )}
                       </td>
                       <td>
-                        {typeof row.poIntent === 'object' && row.poIntent.icon ? (
-                          <span className="po-intent-value">
-                            <TrendingUp size={12} />
-                            {row.poIntent.value}
-                          </span>
-                        ) : (
-                          <span className="po-intent-empty">{row.poIntent}</span>
-                        )}
-                      </td>
+                  {row.poIntentIcon ? (
+                    <span className="po-intent-value">
+                      <TrendingUp size={12} />
+                      {typeof row.poIntent === 'object' ? row.poIntent.value : row.poIntent}
+                    </span>
+                  ) : (
+                    <span className="po-intent-empty">{row.poIntent}</span>
+                  )}
+                </td>
                       <td>
                         <span className="upcoming-stock">
                           <Package size={12} />
@@ -597,6 +707,102 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {apiData && apiData.pagination && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                    {Math.min(currentPage * itemsPerPage, apiData.pagination.total || (currentPage * itemsPerPage))} 
+                    {apiData.pagination.total && ` of ${apiData.pagination.total}`}
+                  </span>
+                  
+                  <div className="items-per-page">
+                    <label htmlFor="itemsPerPage">Items per page:</label>
+                    <select 
+                      id="itemsPerPage"
+                      value={itemsPerPage} 
+                      onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                      className="items-per-page-select"
+                    >
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="pagination-buttons">
+                  <button 
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                  >
+                    First
+                  </button>
+                  
+                  <button 
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-numbers">
+                    {(() => {
+                      const totalPages = apiData.pagination.totalPages || currentPage;
+                      const pages = [];
+                      let startPage = Math.max(1, currentPage - 2);
+                      let endPage = Math.min(totalPages, currentPage + 2);
+                      
+                      // Adjust if we're near the start
+                      if (currentPage <= 3) {
+                        endPage = Math.min(5, totalPages);
+                      }
+                      
+                      // Adjust if we're near the end
+                      if (currentPage >= totalPages - 2) {
+                        startPage = Math.max(1, totalPages - 4);
+                      }
+                      
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            className={`page-number ${i === currentPage ? 'active' : ''}`}
+                            onClick={() => handlePageChange(i)}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                      
+                      return pages;
+                    })()}
+                  </div>
+                  
+                  <button 
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= (apiData.pagination.totalPages || currentPage)}
+                  >
+                    Next
+                  </button>
+                  
+                  <button 
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(apiData.pagination.totalPages || currentPage)}
+                    disabled={currentPage >= (apiData.pagination.totalPages || currentPage)}
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
