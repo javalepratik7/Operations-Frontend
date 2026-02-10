@@ -7,11 +7,13 @@ import {
   TrendingUp, Package, Truck, Warehouse,
   AlertTriangle, ShoppingBag, Filter,
   RefreshCw, ChevronDown, Box,
-  Building2, Layers, Tags, ShoppingCart 
+  Building2, Layers, Tags, ShoppingCart,
+  ArrowUpDown, ArrowUp, ArrowDown, X
 } from 'lucide-react';
 import './ProductDashboard.css';
 import './Pagination.css';
 import './SkeletonStyles.css';
+// import './SortableTableStyles.css';
 
 // Skeleton Components
 const MetricCardSkeleton = () => (
@@ -43,6 +45,7 @@ const TableRowSkeleton = () => (
     <td><div className="skeleton skeleton-text" style={{ width: '100%', height: '14px' }}></div></td>
     <td><div className="skeleton skeleton-text" style={{ width: '100%', height: '14px' }}></div></td>
     <td><div className="skeleton skeleton-text" style={{ width: '60px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '14px' }}></div></td>
     <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '14px' }}></div></td>
     <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '14px' }}></div></td>
     <td><div className="skeleton skeleton-text" style={{ width: '60px', height: '14px' }}></div></td>
@@ -97,6 +100,13 @@ const ProductDashboard = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [sortConfig, setSortConfig] = useState({
+    sortBy: 'inventory_status',
+    sortOrder: 'asc'
+  });
+  
+  // NEW: KPI Filter State
+  const [kpiFilter, setKpiFilter] = useState(null);
 
   // Helper functions - defined first
   const formatNumber = (num) => {
@@ -160,77 +170,270 @@ const ProductDashboard = () => {
     return str.substring(0, maxLength - 3) + '...';
   };
 
-  // Fetch data from API with filter parameters
-  const fetchData = async (filterParams = {}, page = 1, limit = 15) => {
-    try {
-      setLoading(true);
+  // Fetch data from API with filter parameters and sorting
+  // const fetchData = async (filterParams = {}, page = 1, limit = 15, sorting = sortConfig) => {
+  //   try {
+  //     setLoading(true);
       
-      // Build query string from filter parameters
-      const queryParams = new URLSearchParams();
+  //     // Build query string from filter parameters
+  //     const queryParams = new URLSearchParams();
       
-      if (filterParams.brand && filterParams.brand !== 'All Brands') {
-        queryParams.append('brand', filterParams.brand);
-      }
-      if (filterParams.vendor && filterParams.vendor !== 'All Vendors') {
-        queryParams.append('vendor', filterParams.vendor);
-      }
-      if (filterParams.location && filterParams.location !== 'All Locations') {
-        queryParams.append('location', filterParams.location);
-      }
-      if (filterParams.category && filterParams.category !== 'All Categories') {
-        queryParams.append('category', filterParams.category);
-      }
+  //     if (filterParams.brand && filterParams.brand !== 'All Brands') {
+  //       queryParams.append('brand', filterParams.brand);
+  //     }
+  //     if (filterParams.vendor && filterParams.vendor !== 'All Vendors') {
+  //       queryParams.append('vendor', filterParams.vendor);
+  //     }
+  //     if (filterParams.location && filterParams.location !== 'All Locations') {
+  //       queryParams.append('location', filterParams.location);
+  //     }
+  //     if (filterParams.category && filterParams.category !== 'All Categories') {
+  //       queryParams.append('category', filterParams.category);
+  //     }
       
-      // Add pagination parameters
-      queryParams.append('page', page);
-      queryParams.append('limit', limit);
+  //     // Add pagination parameters
+  //     queryParams.append('page', page);
+  //     queryParams.append('limit', limit);
       
-      const queryString = queryParams.toString();
-      const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
+  //     // Add sorting parameters
+  //     queryParams.append('sortBy', sorting.sortBy);
+  //     queryParams.append('sortOrder', sorting.sortOrder);
       
-      console.log('Fetching data from:', url);
+  //     const queryString = queryParams.toString();
+  //     const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
       
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      const data = await response.json();
-      setApiData(data);
+  //     console.log('Fetching data from:', url);
       
-      // ALWAYS update filter options from API response (for cascading filters)
-      if (data.filters) {
-        setFilters(prev => ({
-          brand: {
-            ...prev.brand,
-            options: data.filters.brands || []
-          },
-          vendor: {
-            ...prev.vendor,
-            options: data.filters.vendors || []
-          },
-          location: {
-            ...prev.location,
-            options: data.filters.locations || []
-          },
-          category: {
-            ...prev.category,
-            options: data.filters.categories || []
-          }
-        }));
-      }
+  //     const response = await fetch(url);
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch data');
+  //     }
+  //     const data = await response.json();
+  //     setApiData(data);
       
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching data:', err);
-    } finally {
-      setLoading(false);
+  //     // ALWAYS update filter options from API response (for cascading filters)
+  //     if (data.filters) {
+  //       setFilters(prev => ({
+  //         brand: {
+  //           ...prev.brand,
+  //           options: data.filters.brands || []
+  //         },
+  //         vendor: {
+  //           ...prev.vendor,
+  //           options: data.filters.vendors || []
+  //         },
+  //         location: {
+  //           ...prev.location,
+  //           options: data.filters.locations || []
+  //         },
+  //         category: {
+  //           ...prev.category,
+  //           options: data.filters.categories || []
+  //         }
+  //       }));
+  //     }
+      
+  //     setError(null);
+  //   } catch (err) {
+  //     setError(err.message);
+  //     console.error('Error fetching data:', err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const fetchData = async (filterParams = {}, page = 1, limit = 15, sorting = sortConfig, currentKpiFilter = null) => {
+  try {
+    setLoading(true);
+    
+    // Build query string from filter parameters
+    const queryParams = new URLSearchParams();
+    
+    if (filterParams.brand && filterParams.brand !== 'All Brands') {
+      queryParams.append('brand', filterParams.brand);
     }
-  };
+    if (filterParams.vendor && filterParams.vendor !== 'All Vendors') {
+      queryParams.append('vendor', filterParams.vendor);
+    }
+    if (filterParams.location && filterParams.location !== 'All Locations') {
+      queryParams.append('location', filterParams.location);
+    }
+    if (filterParams.category && filterParams.category !== 'All Categories') {
+      queryParams.append('category', filterParams.category);
+    }
+    
+    // ⭐ NEW: Add KPI filter parameter
+    if (currentKpiFilter) {
+      queryParams.append('kpiFilter', currentKpiFilter);
+    }
+    
+    // Add pagination parameters
+    queryParams.append('page', page);
+    queryParams.append('limit', limit);
+    
+    // Add sorting parameters
+    queryParams.append('sortBy', sorting.sortBy);
+    queryParams.append('sortOrder', sorting.sortOrder);
+    
+    const queryString = queryParams.toString();
+    const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
+    
+    console.log('Fetching data from:', url);
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    const data = await response.json();
+    setApiData(data);
+    
+    // ALWAYS update filter options from API response (for cascading filters)
+    if (data.filters) {
+      setFilters(prev => ({
+        brand: {
+          ...prev.brand,
+          options: data.filters.brands || []
+        },
+        vendor: {
+          ...prev.vendor,
+          options: data.filters.vendors || []
+        },
+        location: {
+          ...prev.location,
+          options: data.filters.locations || []
+        },
+        category: {
+          ...prev.category,
+          options: data.filters.categories || []
+        }
+      }));
+    }
+    
+    setError(null);
+  } catch (err) {
+    setError(err.message);
+    console.error('Error fetching data:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Handle column sort
+  // const handleSort = (columnKey) => {
+  //   const newSortConfig = {
+  //     sortBy: columnKey,
+  //     sortOrder: sortConfig.sortBy === columnKey && sortConfig.sortOrder === 'asc' ? 'desc' : 'asc'
+  //   };
+    
+  //   setSortConfig(newSortConfig);
+  //   setCurrentPage(1);
+    
+  //   const filterParams = {
+  //     brand: filters.brand.value,
+  //     vendor: filters.vendor.value,
+  //     location: filters.location.value,
+  //     category: filters.category.value
+  //   };
+    
+  //   fetchData(filterParams, 1, itemsPerPage, newSortConfig);
+  // };
+
+  const handleSort = (columnKey) => {
+  const newSortConfig = {
+    sortBy: columnKey,
+    sortOrder: sortConfig.sortBy === columnKey && sortConfig.sortOrder === 'asc' ? 'desc' : 'asc'
+  };
+  
+  setSortConfig(newSortConfig);
+  setCurrentPage(1);
+  
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, 1, itemsPerPage, newSortConfig, kpiFilter); // ⭐ Added kpiFilter
+};
+
+  // Get sort icon for column header
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.sortBy !== columnKey) {
+      return <ArrowUpDown size={14} className="sort-icon" />;
+    }
+    return sortConfig.sortOrder === 'asc' 
+      ? <ArrowUp size={14} className="sort-icon active" />
+      : <ArrowDown size={14} className="sort-icon active" />;
+  };
+
+  // NEW: Handle KPI card click
+  // const handleKpiClick = (filterType) => {
+  //   if (kpiFilter === filterType) {
+  //     // If clicking the same filter, clear it
+  //     setKpiFilter(null);
+  //   } else {
+  //     // Set new filter
+  //     setKpiFilter(filterType);
+  //   }
+  //   setCurrentPage(1); // Reset to first page when filtering
+  // };
+
+
+const handleKpiClick = (filterType) => {
+  const newKpiFilter = kpiFilter === filterType ? null : filterType;
+  setKpiFilter(newKpiFilter);
+  setCurrentPage(1);
+  
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, 1, itemsPerPage, sortConfig, newKpiFilter); // ⭐ Call fetchData with filter
+};
+
+  // NEW: Clear KPI filter
+  // const clearKpiFilter = () => {
+  //   setKpiFilter(null);
+  //   setCurrentPage(1);
+  // };
+
+  const clearKpiFilter = () => {
+  setKpiFilter(null);
+  setCurrentPage(1);
+  
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, 1, itemsPerPage, sortConfig, null); // ⭐ Call fetchData with null
+};
+
+  // NEW: Get filter label for active filter bar
+  const getFilterLabel = () => {
+    switch(kpiFilter) {
+      case 'stock_alert':
+        return 'Stock Alert (Low Stock & Zero Stock)';
+      case 'upcoming_stock':
+        return 'Upcoming Stock';
+      case 'po_required':
+        return 'PO Required';
+      case 'over_inventory':
+        return 'Over Inventory (>90 Days)';
+      default:
+        return '';
+    }
+  };
 
   // Main metrics data from API
   const metrics = apiData ? [
@@ -266,7 +469,9 @@ const ProductDashboard = () => {
       icon: <TrendingUp size={20} />,
       color: '#f59e0b',
       bgColor: 'rgba(245, 158, 11, 0.1)',
-      borderColor: '#f59e0b'
+      borderColor: '#f59e0b',
+      clickable: true,
+      filterType: 'over_inventory'
     },
     {
       title: 'INVENTORY (COGS)',
@@ -279,7 +484,7 @@ const ProductDashboard = () => {
     }
   ] : [];
 
-  // Alert metrics from API
+  // Alert metrics from API - NOW CLICKABLE
   const alertMetrics = apiData ? [
     {
       title: 'STOCK ALERT',
@@ -288,7 +493,9 @@ const ProductDashboard = () => {
       color: '#ef4444',
       icon: <AlertTriangle size={22} />,
       bgColor: '#ef44441a',
-      borderColor: '#ff0404be'
+      borderColor: '#ff0404be',
+      clickable: true,
+      filterType: 'stock_alert'
     },
     {
       title: 'AVG DAYS COVER',
@@ -305,7 +512,9 @@ const ProductDashboard = () => {
       color: '#8b5cf6',
       icon: <Package size={22} />,
       bgColor: 'rgba(139, 92, 246, 0.1)',
-      borderColor: '#3b82f6'
+      borderColor: '#3b82f6',
+      clickable: true,
+      filterType: 'upcoming_stock'
     },
     {
       title: 'PO REQUIRED',
@@ -314,7 +523,9 @@ const ProductDashboard = () => {
       color: '#a855f7',
       icon: <Package size={22} />,
       bgColor: 'hsla(271, 91%, 65%, 0.10)',
-      borderColor: '#3b82f6'
+      borderColor: '#3b82f6',
+      clickable: true,
+      filterType: 'po_required'
     }
   ] : [];
 
@@ -371,19 +582,51 @@ const ProductDashboard = () => {
       currentStock: item.current_stock || 0,
       speed: Math.round(parseFloat(item.drr_30d) || 0),
       daysCover: Math.round(daysCover),
+      daysCoverWithPO: Math.round(parseFloat(item.days_of_cover_with_po) || 0),
       inTransit: item.in_transit_stock || 0,
+      upcomingStock: item.upcoming_stock || 0,
       vendor: item.vendor_name || 'No Vendor',
       poStatus: item.inventory_status === 'PO_REQUIRED' ? 'PO Needed' : '—',
       poIntent: poIntentDisplay,
       poIntentIcon: poIntentIcon,
-      upcomingStock: { 
+      upcomingStockDisplay: { 
         value: formatNumber(item.upcoming_stock), 
         days: '7d'
       },
       stockStatus: stockStatus,
-      coverStatus: coverStatus
+      coverStatus: coverStatus,
+      inventoryStatus: item.inventory_status
     };
   }) : [];
+
+  // NEW: Filter SKU data based on KPI filter
+  // const filteredSkuData = skuData.filter(item => {
+  //   if (!kpiFilter) return true; // No filter, show all
+    
+  //   switch(kpiFilter) {
+  //     case 'stock_alert':
+  //       // Show LOW_STOCK or items with zero stock
+  //       return item.inventoryStatus === 'LOW_STOCK' || item.currentStock === 0;
+      
+  //     case 'upcoming_stock':
+  //       // Show items with upcoming stock > 0
+  //       return item.upcomingStock > 0;
+      
+  //     case 'po_required':
+  //       // Show items with PO_REQUIRED status
+  //       return item.inventoryStatus === 'PO_REQUIRED';
+      
+  //     case 'over_inventory':
+  //       // Show items with days cover > 90
+  //       return item.daysCover > 90;
+      
+  //     default:
+  //       return true;
+  //   }
+  // });
+
+  const filteredSkuData = skuData; // ⭐ Server-side filtering handled by API
+
 
   // Days Cover Trend Data from API
   const trendData = apiData ? (apiData.summary.days_cover_trend || []).map((item, index) => ({
@@ -410,68 +653,126 @@ const ProductDashboard = () => {
     { name: 'Blinkit B2C', units: apiData.summary.quick_commerce_speed?.blinkit_b2c || 0 }
   ] : [];
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      [key]: { ...prev[key], value } 
-    }));
+  // const handleFilterChange = (key, value) => {
+  //   setFilters(prev => ({ 
+  //     ...prev, 
+  //     [key]: { ...prev[key], value } 
+  //   }));
     
-    setCurrentPage(1);
+  //   setCurrentPage(1);
     
-    const updatedFilters = {
-      ...filters,
-      [key]: { ...filters[key], value }
-    };
+  //   const updatedFilters = {
+  //     ...filters,
+  //     [key]: { ...filters[key], value }
+  //   };
     
-    const filterParams = {
-      brand: updatedFilters.brand.value,
-      vendor: updatedFilters.vendor.value,
-      location: updatedFilters.location.value,
-      category: updatedFilters.category.value
-    };
+  //   const filterParams = {
+  //     brand: updatedFilters.brand.value,
+  //     vendor: updatedFilters.vendor.value,
+  //     location: updatedFilters.location.value,
+  //     category: updatedFilters.category.value
+  //   };
     
-    fetchData(filterParams, 1, itemsPerPage);
-  };
+  //   fetchData(filterParams, 1, itemsPerPage, sortConfig);
+  // };
 
-  const handleRefresh = () => {
-    const filterParams = {
-      brand: filters.brand.value,
-      vendor: filters.vendor.value,
-      location: filters.location.value,
-      category: filters.category.value
-    };
-    
-    fetchData(filterParams, currentPage, itemsPerPage);
-  };
 
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-    
-    const filterParams = {
-      brand: filters.brand.value,
-      vendor: filters.vendor.value,
-      location: filters.location.value,
-      category: filters.category.value
-    };
-    
-    fetchData(filterParams, newPage, itemsPerPage);
-    
-    document.querySelector('.table-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
-  const handleItemsPerPageChange = (newLimit) => {
-    setItemsPerPage(newLimit);
-    setCurrentPage(1);
-    
-    const filterParams = {
-      brand: filters.brand.value,
-      vendor: filters.vendor.value,
-      location: filters.location.value,
-      category: filters.category.value
-    };
-    
-    fetchData(filterParams, 1, newLimit);
+const handleFilterChange = (key, value) => {
+  setFilters(prev => ({ 
+    ...prev, 
+    [key]: { ...prev[key], value } 
+  }));
+  
+  setCurrentPage(1);
+  
+  const updatedFilters = {
+    ...filters,
+    [key]: { ...filters[key], value }
   };
+  
+  const filterParams = {
+    brand: updatedFilters.brand.value,
+    vendor: updatedFilters.vendor.value,
+    location: updatedFilters.location.value,
+    category: updatedFilters.category.value
+  };
+  
+  fetchData(filterParams, 1, itemsPerPage, sortConfig, kpiFilter); // ⭐ Added kpiFilter
+};
+
+
+const handleRefresh = () => {
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, currentPage, itemsPerPage, sortConfig, kpiFilter); // ⭐ Added kpiFilter
+};
+
+
+  // const handlePageChange = (newPage) => {
+  //   setCurrentPage(newPage);
+    
+  //   const filterParams = {
+  //     brand: filters.brand.value,
+  //     vendor: filters.vendor.value,
+  //     location: filters.location.value,
+  //     category: filters.category.value
+  //   };
+    
+  //   fetchData(filterParams, newPage, itemsPerPage, sortConfig);
+    
+  //   document.querySelector('.table-section')?.scrollIntoView({ behavior: 'smooth' });
+  // };
+
+
+const handlePageChange = (newPage) => {
+  setCurrentPage(newPage);
+  
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, newPage, itemsPerPage, sortConfig, kpiFilter); // ⭐ Added kpiFilter
+  
+  document.querySelector('.table-section')?.scrollIntoView({ behavior: 'smooth' });
+};
+
+  // const handleItemsPerPageChange = (newLimit) => {
+  //   setItemsPerPage(newLimit);
+  //   setCurrentPage(1);
+    
+  //   const filterParams = {
+  //     brand: filters.brand.value,
+  //     vendor: filters.vendor.value,
+  //     location: filters.location.value,
+  //     category: filters.category.value
+  //   };
+    
+  //   fetchData(filterParams, 1, newLimit, sortConfig);
+  // };
+
+
+const handleItemsPerPageChange = (newLimit) => {
+  setItemsPerPage(newLimit);
+  setCurrentPage(1);
+  
+  const filterParams = {
+    brand: filters.brand.value,
+    vendor: filters.vendor.value,
+    location: filters.location.value,
+    category: filters.category.value
+  };
+  
+  fetchData(filterParams, 1, newLimit, sortConfig, kpiFilter); // ⭐ Added kpiFilter
+};
 
   if (error) {
     return (
@@ -525,10 +826,13 @@ const ProductDashboard = () => {
               metrics.map((metric, index) => (
                 <div
                   key={index}
-                  className="metric-card"
+                  className={`metric-card ${metric.clickable ? 'clickable-card' : ''} ${
+                    kpiFilter === metric.filterType ? 'active-filter' : ''
+                  }`}
                   style={{
                     borderLeft: `4px solid ${metric.borderColor}`
                   }}
+                  onClick={metric.clickable ? () => handleKpiClick(metric.filterType) : undefined}
                 >
                   <div className="metric-header">
                     <div className="metric-icon" style={{ color: metric.color }}>
@@ -551,7 +855,7 @@ const ProductDashboard = () => {
           </div>
         </div>
 
-        {/* Alert Metrics */}
+        {/* Alert Metrics - NOW CLICKABLE */}
         <div className="alert-metrics-section">
           {loading ? (
             <>
@@ -563,10 +867,13 @@ const ProductDashboard = () => {
             alertMetrics.map((metric, index) => (
               <div
                 key={index}
-                className="alert-metric-card"
+                className={`alert-metric-card ${metric.clickable ? 'clickable-card' : ''} ${
+                  kpiFilter === metric.filterType ? 'active-filter' : ''
+                }`}
                 style={{
                   borderLeft: `4px solid ${metric.borderColor}`,
                 }}
+                onClick={metric.clickable ? () => handleKpiClick(metric.filterType) : undefined}
               >
                 <div className="alert-icon" style={{ color: metric.color, backgroundColor: `${metric.color}1A` }}>
                   {metric.icon}
@@ -587,6 +894,28 @@ const ProductDashboard = () => {
           )}
         </div>
 
+        {/* NEW: Active Filter Bar */}
+        {kpiFilter && !loading && (
+          <div className="active-filter-bar">
+            <div className="filter-bar-content">
+              <span className="filter-bar-label">Showing:</span>
+              <div className="active-filter-tag">
+                <span>{getFilterLabel()}</span>
+                <button 
+                  className="clear-filter-btn" 
+                  onClick={clearKpiFilter}
+                  aria-label="Clear filter"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <span className="filter-count">
+                ({filteredSkuData.length} items)
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Filters and Table Section */}
         <div className="filters-table-container">
           {/* Filters */}
@@ -596,6 +925,14 @@ const ProductDashboard = () => {
                 <Filter size={18} color='blue' />
                 Filters
               </h3>
+              {/* {kpiFilter && (
+                <button 
+                  className="clear-all-btn"
+                  onClick={clearKpiFilter}
+                >
+                  Clear All Filters
+                </button>
+              )} */}
             </div>
             <div className="filters-grid">
               {Object.entries(filters).map(([key, filter]) => {
@@ -652,17 +989,54 @@ const ProductDashboard = () => {
               <table className="inventory-table">
                 <thead>
                   <tr>
-                    <th>Brand</th>
-                    <th>SKU</th>
-                    <th>Product</th>
-                    <th>Current Stock</th>
-                    <th>Speed</th>
-                    <th>Days Cover</th>
-                    <th>In Transit</th>
-                    <th>Vendor</th>
-                    <th>PO Status</th>
-                    <th>PO Intent</th>
-                    <th>Upcoming Stock</th>
+                    <th onClick={() => handleSort('brand')} className="sortable-header">
+                      <span>Brand</span>
+                      {getSortIcon('brand')}
+                    </th>
+                    <th onClick={() => handleSort('ean_code')} className="sortable-header">
+                      <span>SKU</span>
+                      {getSortIcon('ean_code')}
+                    </th>
+                    <th onClick={() => handleSort('product_title')} className="sortable-header">
+                      <span>Product</span>
+                      {getSortIcon('product_title')}
+                    </th>
+                    <th onClick={() => handleSort('current_stock')} className="sortable-header">
+                      <span>Current Stock</span>
+                      {getSortIcon('current_stock')}
+                    </th>
+                    <th onClick={() => handleSort('drr_30d')} className="sortable-header">
+                      <span>Speed</span>
+                      {getSortIcon('drr_30d')}
+                    </th>
+                    <th onClick={() => handleSort('days_of_cover')} className="sortable-header">
+                      <span>DC (+ Transit)</span>
+                      {getSortIcon('days_of_cover')}
+                    </th>
+                    <th onClick={() => handleSort('days_of_cover_with_po')} className="sortable-header">
+                      <span>DC (+ All)</span>
+                      {getSortIcon('days_of_cover_with_po')}
+                    </th>
+                    <th onClick={() => handleSort('in_transit_stock')} className="sortable-header">
+                      <span>In Transit</span>
+                      {getSortIcon('in_transit_stock')}
+                    </th>
+                    <th onClick={() => handleSort('vendor_name')} className="sortable-header">
+                      <span>Vendor</span>
+                      {getSortIcon('vendor_name')}
+                    </th>
+                    <th onClick={() => handleSort('inventory_status')} className="sortable-header">
+                      <span>PO Status</span>
+                      {getSortIcon('inventory_status')}
+                    </th>
+                    <th onClick={() => handleSort('po_intent_units')} className="sortable-header">
+                      <span>PO Intent</span>
+                      {getSortIcon('po_intent_units')}
+                    </th>
+                    <th onClick={() => handleSort('upcoming_stock')} className="sortable-header">
+                      <span>Upcoming Stock</span>
+                      {getSortIcon('upcoming_stock')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -672,8 +1046,14 @@ const ProductDashboard = () => {
                         <TableRowSkeleton key={index} />
                       ))}
                     </>
+                  ) : filteredSkuData.length === 0 ? (
+                    <tr>
+                      <td colSpan="12" style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                        No items match the selected filter
+                      </td>
+                    </tr>
                   ) : (
-                    skuData.map((row, index) => (
+                    filteredSkuData.map((row, index) => (
                       <tr
                         key={index}
                         className={`rowHeight ${row.stockStatus === 'zero'
@@ -707,6 +1087,11 @@ const ProductDashboard = () => {
                             {row.daysCover}
                           </span>
                         </td>
+                        <td>
+                          <span className="days-cover-with-po">
+                            {row.daysCoverWithPO}
+                          </span>
+                        </td>
                         <td className="transit-cell">{row.inTransit.toLocaleString()}</td>
                         <td className="vendor-cell">{row.vendor}</td>
                         <td>
@@ -732,8 +1117,8 @@ const ProductDashboard = () => {
                         <td>
                           <span className="upcoming-stock">
                             <Package size={12} />
-                            {row.upcomingStock.value}
-                            <span className="upcoming-days">in {row.upcomingStock.days}</span>
+                            {row.upcomingStockDisplay.value}
+                            <span className="upcoming-days">in {row.upcomingStockDisplay.days}</span>
                           </span>
                         </td>
                       </tr>
@@ -744,13 +1129,11 @@ const ProductDashboard = () => {
             </div>
             
             {/* Pagination Controls */}
-            {!loading && apiData && apiData.pagination && (
+            {/* {!loading && apiData && apiData.pagination && filteredSkuData.length > 0 && (
               <div className="pagination-container">
                 <div className="pagination-info">
                   <span className="pagination-text">
-                    Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-                    {Math.min(currentPage * itemsPerPage, apiData.pagination.total || (currentPage * itemsPerPage))} 
-                    {apiData.pagination.total && ` of ${apiData.pagination.total}`}
+                    Showing {Math.min(filteredSkuData.length, itemsPerPage)} of {filteredSkuData.length} filtered items
                   </span>
                   
                   <div className="items-per-page">
@@ -769,73 +1152,137 @@ const ProductDashboard = () => {
                     </select>
                   </div>
                 </div>
-                
-                <div className="pagination-buttons">
-                  <button 
-                    className="pagination-btn"
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1}
-                  >
-                    First
-                  </button>
-                  
-                  <button 
-                    className="pagination-btn"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="page-numbers">
-                    {(() => {
-                      const totalPages = apiData.pagination.totalPages || currentPage;
-                      const pages = [];
-                      let startPage = Math.max(1, currentPage - 2);
-                      let endPage = Math.min(totalPages, currentPage + 2);
-                      
-                      if (currentPage <= 3) {
-                        endPage = Math.min(5, totalPages);
-                      }
-                      
-                      if (currentPage >= totalPages - 2) {
-                        startPage = Math.max(1, totalPages - 4);
-                      }
-                      
-                      for (let i = startPage; i <= endPage; i++) {
-                        pages.push(
-                          <button
-                            key={i}
-                            className={`page-number ${i === currentPage ? 'active' : ''}`}
-                            onClick={() => handlePageChange(i)}
-                          >
-                            {i}
-                          </button>
-                        );
-                      }
-                      
-                      return pages;
-                    })()}
-                  </div>
-                  
-                  <button 
-                    className="pagination-btn"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= (apiData.pagination.totalPages || currentPage)}
-                  >
-                    Next
-                  </button>
-                  
-                  <button 
-                    className="pagination-btn"
-                    onClick={() => handlePageChange(apiData.pagination.totalPages || currentPage)}
-                    disabled={currentPage >= (apiData.pagination.totalPages || currentPage)}
-                  >
-                    Last
-                  </button>
-                </div>
               </div>
-            )}
+            )} */}
+
+            {/* Pagination Controls */}
+{!loading && apiData && apiData.pagination && (
+  <div className="pagination-container">
+    <div className="pagination-info">
+      <span className="pagination-text">
+        Showing {(apiData.pagination.page - 1) * apiData.pagination.limit + 1} to{" "}
+        {Math.min(
+          apiData.pagination.page * apiData.pagination.limit,
+          apiData.pagination.total
+        )}{" "}
+        of {apiData.pagination.total} items
+        {kpiFilter && ` (${filteredSkuData.length} filtered)`}
+      </span>
+      
+      <div className="items-per-page">
+        <label htmlFor="itemsPerPage">Items per page:</label>
+        <select 
+          id="itemsPerPage"
+          value={itemsPerPage} 
+          onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+          className="items-per-page-select"
+        >
+          <option value={10}>10</option>
+          <option value={15}>15</option>
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+      </div>
+    </div>
+    
+    <div className="pagination-controls">
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(1)}
+        disabled={currentPage === 1 || loading}
+      >
+        First
+      </button>
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1 || loading}
+      >
+        Previous
+      </button>
+      
+      <div className="page-numbers">
+        {(() => {
+          const totalPages = apiData.pagination.totalPages;
+          const current = currentPage;
+          let pages = [];
+          
+          // Always show first page
+          if (current > 3) {
+            pages.push(1);
+            if (current > 4) pages.push('...');
+          }
+          
+          // Show pages around current page
+          for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+            pages.push(i);
+          }
+          
+          // Always show last page
+          if (current < totalPages - 2) {
+            if (current < totalPages - 3) pages.push('...');
+            pages.push(totalPages);
+          }
+          
+          return pages.map((page, index) => (
+            page === '...' ? (
+              <span key={index} className="page-ellipsis">...</span>
+            ) : (
+              <button
+                key={index}
+                className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={loading}
+              >
+                {page}
+              </button>
+            )
+          ));
+        })()}
+      </div>
+      
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage >= apiData.pagination.totalPages || loading}
+      >
+        Next
+      </button>
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(apiData.pagination.totalPages)}
+        disabled={currentPage === apiData.pagination.totalPages || loading}
+      >
+        Last
+      </button>
+      
+      <div className="page-jump">
+        <span>Go to:</span>
+        <input
+          type="number"
+          min="1"
+          max={apiData.pagination.totalPages}
+          value={currentPage}
+          onChange={(e) => {
+            const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
+            if (page !== currentPage) {
+              handlePageChange(page);
+            }
+          }}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
+              handlePageChange(page);
+            }
+          }}
+          className="page-input"
+          disabled={loading}
+        />
+      </div>
+    </div>
+  </div>
+)}
           </div>
         </div>
 
