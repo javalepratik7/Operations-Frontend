@@ -15,6 +15,7 @@ import './Pagination.css';
 import './SkeletonStyles.css';
 // import './SortableTableStyles.css';
 
+
 // Skeleton Components
 const MetricCardSkeleton = () => (
   <div className="metric-card skeleton-card">
@@ -68,6 +69,7 @@ const ChartSkeleton = () => (
 );
 
 const ProductDashboard = () => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [filters, setFilters] = useState({
     brand: {
       label: 'Brand',
@@ -276,7 +278,7 @@ const ProductDashboard = () => {
     queryParams.append('sortOrder', sorting.sortOrder);
     
     const queryString = queryParams.toString();
-    const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
+    const url = `${API_BASE_URL}/planning${queryString ? '?' + queryString : ''}`;
     
     console.log('Fetching data from:', url);
     
@@ -1156,133 +1158,133 @@ const handleItemsPerPageChange = (newLimit) => {
             )} */}
 
             {/* Pagination Controls */}
-{!loading && apiData && apiData.pagination && (
-  <div className="pagination-container">
-    <div className="pagination-info">
-      <span className="pagination-text">
-        Showing {(apiData.pagination.page - 1) * apiData.pagination.limit + 1} to{" "}
-        {Math.min(
-          apiData.pagination.page * apiData.pagination.limit,
-          apiData.pagination.total
-        )}{" "}
-        of {apiData.pagination.total} items
-        {kpiFilter && ` (${filteredSkuData.length} filtered)`}
-      </span>
-      
-      <div className="items-per-page">
-        <label htmlFor="itemsPerPage">Items per page:</label>
-        <select 
-          id="itemsPerPage"
-          value={itemsPerPage} 
-          onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-          className="items-per-page-select"
-        >
-          <option value={10}>10</option>
-          <option value={15}>15</option>
-          <option value={25}>25</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-        </select>
-      </div>
-    </div>
-    
-    <div className="pagination-controls">
-      <button
-        className="pagination-btn"
-        onClick={() => handlePageChange(1)}
-        disabled={currentPage === 1 || loading}
-      >
-        First
-      </button>
-      <button
-        className="pagination-btn"
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1 || loading}
-      >
-        Previous
-      </button>
-      
-      <div className="page-numbers">
-        {(() => {
-          const totalPages = apiData.pagination.totalPages;
-          const current = currentPage;
-          let pages = [];
-          
-          // Always show first page
-          if (current > 3) {
-            pages.push(1);
-            if (current > 4) pages.push('...');
-          }
-          
-          // Show pages around current page
-          for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
-            pages.push(i);
-          }
-          
-          // Always show last page
-          if (current < totalPages - 2) {
-            if (current < totalPages - 3) pages.push('...');
-            pages.push(totalPages);
-          }
-          
-          return pages.map((page, index) => (
-            page === '...' ? (
-              <span key={index} className="page-ellipsis">...</span>
-            ) : (
-              <button
-                key={index}
-                className={`page-btn ${currentPage === page ? 'active' : ''}`}
-                onClick={() => handlePageChange(page)}
-                disabled={loading}
-              >
-                {page}
-              </button>
-            )
-          ));
-        })()}
-      </div>
-      
-      <button
-        className="pagination-btn"
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage >= apiData.pagination.totalPages || loading}
-      >
-        Next
-      </button>
-      <button
-        className="pagination-btn"
-        onClick={() => handlePageChange(apiData.pagination.totalPages)}
-        disabled={currentPage === apiData.pagination.totalPages || loading}
-      >
-        Last
-      </button>
-      
-      <div className="page-jump">
-        <span>Go to:</span>
-        <input
-          type="number"
-          min="1"
-          max={apiData.pagination.totalPages}
-          value={currentPage}
-          onChange={(e) => {
-            const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
-            if (page !== currentPage) {
-              handlePageChange(page);
-            }
-          }}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
-              handlePageChange(page);
-            }
-          }}
-          className="page-input"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
-)}
+            {!loading && apiData && apiData.pagination && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  <span className="pagination-text">
+                    Showing {(apiData.pagination.page - 1) * apiData.pagination.limit + 1} to{" "}
+                    {Math.min(
+                      apiData.pagination.page * apiData.pagination.limit,
+                      apiData.pagination.total
+                    )}{" "}
+                    of {apiData.pagination.total} items
+                    {kpiFilter && ` (${filteredSkuData.length} filtered)`}
+                  </span>
+                  
+                  <div className="items-per-page">
+                    <label htmlFor="itemsPerPage">Items per page:</label>
+                    <select 
+                      id="itemsPerPage"
+                      value={itemsPerPage} 
+                      onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                      className="items-per-page-select"
+                    >
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    First
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-numbers">
+                    {(() => {
+                      const totalPages = apiData.pagination.totalPages;
+                      const current = currentPage;
+                      let pages = [];
+                      
+                      // Always show first page
+                      if (current > 3) {
+                        pages.push(1);
+                        if (current > 4) pages.push('...');
+                      }
+                      
+                      // Show pages around current page
+                      for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+                        pages.push(i);
+                      }
+                      
+                      // Always show last page
+                      if (current < totalPages - 2) {
+                        if (current < totalPages - 3) pages.push('...');
+                        pages.push(totalPages);
+                      }
+                      
+                      return pages.map((page, index) => (
+                        page === '...' ? (
+                          <span key={index} className="page-ellipsis">...</span>
+                        ) : (
+                          <button
+                            key={index}
+                            className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                            onClick={() => handlePageChange(page)}
+                            disabled={loading}
+                          >
+                            {page}
+                          </button>
+                        )
+                      ));
+                    })()}
+                  </div>
+                  
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= apiData.pagination.totalPages || loading}
+                  >
+                    Next
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(apiData.pagination.totalPages)}
+                    disabled={currentPage === apiData.pagination.totalPages || loading}
+                  >
+                    Last
+                  </button>
+                  
+                  <div className="page-jump">
+                    <span>Go to:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={apiData.pagination.totalPages}
+                      value={currentPage}
+                      onChange={(e) => {
+                        const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
+                        if (page !== currentPage) {
+                          handlePageChange(page);
+                        }
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          const page = Math.max(1, Math.min(apiData.pagination.totalPages, Number(e.target.value)));
+                          handlePageChange(page);
+                        }
+                      }}
+                      className="page-input"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
