@@ -11,6 +11,58 @@ import {
 } from 'lucide-react';
 import './ProductDashboard.css';
 import './Pagination.css';
+import './SkeletonStyles.css';
+
+// Skeleton Components
+const MetricCardSkeleton = () => (
+  <div className="metric-card skeleton-card">
+    <div className="metric-header">
+      <div className="skeleton skeleton-icon"></div>
+      <div className='metric-gap' style={{ flex: 1 }}>
+        <div className="skeleton skeleton-text" style={{ width: '60%', height: '12px' }}></div>
+        <div className="skeleton skeleton-text" style={{ width: '80%', height: '24px', marginTop: '8px' }}></div>
+      </div>
+    </div>
+  </div>
+);
+
+const AlertMetricSkeleton = () => (
+  <div className="alert-metric-card skeleton-card">
+    <div className="skeleton skeleton-icon-large"></div>
+    <div style={{ flex: 1 }}>
+      <div className="skeleton skeleton-text" style={{ width: '70%', height: '12px' }}></div>
+      <div className="skeleton skeleton-text" style={{ width: '50%', height: '28px', marginTop: '8px' }}></div>
+      <div className="skeleton skeleton-text" style={{ width: '60%', height: '10px', marginTop: '6px' }}></div>
+    </div>
+  </div>
+);
+
+const TableRowSkeleton = () => (
+  <tr className="skeleton-row">
+    <td><div className="skeleton skeleton-text" style={{ width: '80px', height: '24px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '100%', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '100%', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '60px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '60px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '90%', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '70px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '60px', height: '14px' }}></div></td>
+    <td><div className="skeleton skeleton-text" style={{ width: '80px', height: '14px' }}></div></td>
+  </tr>
+);
+
+const ChartSkeleton = () => (
+  <div className="chart-card skeleton-card">
+    <div className="chart-header">
+      <div className="skeleton skeleton-text" style={{ width: '150px', height: '18px' }}></div>
+    </div>
+    <div className="chart-container" style={{ padding: '20px' }}>
+      <div className="skeleton skeleton-chart"></div>
+    </div>
+  </div>
+);
 
 const ProductDashboard = () => {
   const [filters, setFilters] = useState({
@@ -421,17 +473,6 @@ const ProductDashboard = () => {
     fetchData(filterParams, 1, newLimit);
   };
 
-  if (loading) {
-    return (
-      <div className="dashboard-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="dashboard-container">
@@ -463,8 +504,8 @@ const ProductDashboard = () => {
           <div className="last-updated">
             Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          <button className="btn btn-refresh" onClick={handleRefresh}>
-            <RefreshCw size={16} />
+          <button className="btn btn-refresh" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spinning' : ''} />
             Refresh
           </button>
         </div>
@@ -474,60 +515,76 @@ const ProductDashboard = () => {
         {/* Main Metrics */}
         <div className="metrics-section">
           <div className="metrics-grid">
-            {metrics.map((metric, index) => (
-              <div
-                key={index}
-                className="metric-card"
-                style={{
-                  borderLeft: `4px solid ${metric.borderColor}`
-                }}
-              >
-                <div className="metric-header">
-                  <div className="metric-icon" style={{ color: metric.color }}>
-                    {metric.icon}
+            {loading ? (
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <MetricCardSkeleton key={index} />
+                ))}
+              </>
+            ) : (
+              metrics.map((metric, index) => (
+                <div
+                  key={index}
+                  className="metric-card"
+                  style={{
+                    borderLeft: `4px solid ${metric.borderColor}`
+                  }}
+                >
+                  <div className="metric-header">
+                    <div className="metric-icon" style={{ color: metric.color }}>
+                      {metric.icon}
+                    </div>
+                    <div className='metric-gap'>
+                      <div className="metric-title">{metric.title}</div>
+                      <div className="metric-value">{metric.value}</div>
+                    </div>
                   </div>
-                  <div className='metric-gap'>
-                    <div className="metric-title">{metric.title}</div>
-                    <div className="metric-value">{metric.value}</div>
-                  </div>
+                  {metric.change && (
+                    <div className="metric-change">{metric.change}</div>
+                  )}
+                  {metric.subtitle && (
+                    <div className="metric-subtitle">{metric.subtitle}</div>
+                  )}
                 </div>
-                {metric.change && (
-                  <div className="metric-change">{metric.change}</div>
-                )}
-                {metric.subtitle && (
-                  <div className="metric-subtitle">{metric.subtitle}</div>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         {/* Alert Metrics */}
         <div className="alert-metrics-section">
-          {alertMetrics.map((metric, index) => (
-            <div
-              key={index}
-              className="alert-metric-card"
-              style={{
-                borderLeft: `4px solid ${metric.borderColor}`,
-              }}
-            >
-              <div className="alert-icon" style={{ color: metric.color, backgroundColor: `${metric.color}1A` }}>
-                {metric.icon}
-              </div>
-              <div>
-                <div className="alert-metric-header">
-                  <span className="metric-label">{metric.title}</span>
+          {loading ? (
+            <>
+              {[...Array(4)].map((_, index) => (
+                <AlertMetricSkeleton key={index} />
+              ))}
+            </>
+          ) : (
+            alertMetrics.map((metric, index) => (
+              <div
+                key={index}
+                className="alert-metric-card"
+                style={{
+                  borderLeft: `4px solid ${metric.borderColor}`,
+                }}
+              >
+                <div className="alert-icon" style={{ color: metric.color, backgroundColor: `${metric.color}1A` }}>
+                  {metric.icon}
                 </div>
-                <div className="alert-metric-value" style={{ color: "white" }}>
-                  {metric.value}
+                <div>
+                  <div className="alert-metric-header">
+                    <span className="metric-label">{metric.title}</span>
+                  </div>
+                  <div className="alert-metric-value" style={{ color: "white" }}>
+                    {metric.value}
+                  </div>
+                  {metric.subtitle && (
+                    <div className="alert-metric-subtitle">{metric.subtitle}</div>
+                  )}
                 </div>
-                {metric.subtitle && (
-                  <div className="alert-metric-subtitle">{metric.subtitle}</div>
-                )}
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Filters and Table Section */}
@@ -555,6 +612,7 @@ const ProductDashboard = () => {
                       <select
                         value={filter.value}
                         onChange={(e) => handleFilterChange(key, e.target.value)}
+                        disabled={loading}
                       >
                         <option value={`All ${filter.label}s`}>All {filter.label}s</option>
                         {filter.options && filter.options.map((option, index) => (
@@ -608,77 +666,85 @@ const ProductDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {skuData.map((row, index) => (
-                    <tr
-                      key={index}
-                      className={`rowHeight ${row.stockStatus === 'zero'
-                          ? 'row-alert-zero'
-                          : row.stockStatus === 'low'
-                            ? 'row-alert-low'
-                            : row.stockStatus === 'po'
-                              ? 'row-alert-po'
-                              : ''
-                        }`}
-                    >
-                      <td>
-                        <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : row.brand.includes('Yog') ? 'yog' : row.brand.includes('Seoul') ? 'seoul' : row.brand.includes('Makemeebold') ? 'makemeebold' : 'other'}`}>
-                          {row.brand}
-                        </span>
-                      </td>
-                      <td className="sku-cell">{row.sku}</td>
-                      <td className="product-cell">{row.product}</td>
-                      <td>
-                        <span className={`stock-value ${row.stockStatus}`}>
-                          {row.currentStock.toLocaleString()}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="speed-indicator">
-                          <span className="speed-value">{row.speed}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`days-cover ${row.coverStatus}`}>
-                          {row.daysCover}
-                        </span>
-                      </td>
-                      <td className="transit-cell">{row.inTransit.toLocaleString()}</td>
-                      <td className="vendor-cell">{row.vendor}</td>
-                      <td>
-                        {row.poStatus === 'PO Needed' ? (
-                          <button className="po-status-btn">
-                            <ShoppingCart size={12} color='black'/>
-                            PO Needed
-                          </button>
-                        ) : (
-                          <span className="po-status-empty">{row.poStatus}</span>
-                        )}
-                      </td>
-                      <td>
-                        {row.poIntentIcon ? (
-                          <span className="po-intent-value">
-                            <TrendingUp size={12} />
-                            {typeof row.poIntent === 'object' ? row.poIntent.value : row.poIntent}
+                  {loading ? (
+                    <>
+                      {[...Array(10)].map((_, index) => (
+                        <TableRowSkeleton key={index} />
+                      ))}
+                    </>
+                  ) : (
+                    skuData.map((row, index) => (
+                      <tr
+                        key={index}
+                        className={`rowHeight ${row.stockStatus === 'zero'
+                            ? 'row-alert-zero'
+                            : row.stockStatus === 'low'
+                              ? 'row-alert-low'
+                              : row.stockStatus === 'po'
+                                ? 'row-alert-po'
+                                : ''
+                          }`}
+                      >
+                        <td>
+                          <span className={`brand-tag ${row.brand.includes('Gabru') ? 'gabru' : row.brand.includes('Yog') ? 'yog' : row.brand.includes('Seoul') ? 'seoul' : row.brand.includes('Makemeebold') ? 'makemeebold' : 'other'}`}>
+                            {row.brand}
                           </span>
-                        ) : (
-                          <span className="po-intent-empty">{row.poIntent}</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="upcoming-stock">
-                          <Package size={12} />
-                          {row.upcomingStock.value}
-                          <span className="upcoming-days">in {row.upcomingStock.days}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="sku-cell">{row.sku}</td>
+                        <td className="product-cell">{row.product}</td>
+                        <td>
+                          <span className={`stock-value ${row.stockStatus}`}>
+                            {row.currentStock.toLocaleString()}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="speed-indicator">
+                            <span className="speed-value">{row.speed}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`days-cover ${row.coverStatus}`}>
+                            {row.daysCover}
+                          </span>
+                        </td>
+                        <td className="transit-cell">{row.inTransit.toLocaleString()}</td>
+                        <td className="vendor-cell">{row.vendor}</td>
+                        <td>
+                          {row.poStatus === 'PO Needed' ? (
+                            <button className="po-status-btn">
+                              <ShoppingCart size={12} color='black'/>
+                              PO Needed
+                            </button>
+                          ) : (
+                            <span className="po-status-empty">{row.poStatus}</span>
+                          )}
+                        </td>
+                        <td>
+                          {row.poIntentIcon ? (
+                            <span className="po-intent-value">
+                              <TrendingUp size={12} />
+                              {typeof row.poIntent === 'object' ? row.poIntent.value : row.poIntent}
+                            </span>
+                          ) : (
+                            <span className="po-intent-empty">{row.poIntent}</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="upcoming-stock">
+                            <Package size={12} />
+                            {row.upcomingStock.value}
+                            <span className="upcoming-days">in {row.upcomingStock.days}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
             
             {/* Pagination Controls */}
-            {apiData && apiData.pagination && (
+            {!loading && apiData && apiData.pagination && (
               <div className="pagination-container">
                 <div className="pagination-info">
                   <span className="pagination-text">
@@ -775,172 +841,184 @@ const ProductDashboard = () => {
 
         {/* Charts Section */}
         <div className="charts-section">
-          {/* Days Cover Trend */}
-          <div className="chart-card">
-            <div className="chart-header">
-              <h3>Days Cover Trend</h3>
-              <div className="chart-icon">
-                <TrendingUp size={14} />
+          {loading ? (
+            <>
+              <ChartSkeleton />
+              <ChartSkeleton />
+              <ChartSkeleton />
+            </>
+          ) : (
+            <>
+              {/* Days Cover Trend */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <h3>Days Cover Trend</h3>
+                  <div className="chart-icon">
+                    <TrendingUp size={14} />
+                  </div>
+                </div>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                        domain={[0, 80]}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1f2937',
+                          border: '1px solid #374151',
+                          borderRadius: '6px',
+                          color: '#fff'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="days"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={{ fill: '#3b82f6', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 11 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 11 }}
-                    domain={[0, 80]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1f2937',
-                      border: '1px solid #374151',
-                      borderRadius: '6px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="days"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
 
-          {/* Inventory Distribution */}
-          <div className="chart-card">
-            <div className="chart-header">
-              <h3>Inventory Distribution</h3>
-              <div className="chart-legend">
-                <span className="legend-item">
-                  <span className="legend-box warehouse"></span>
-                  Warehouse
-                </span>
-                <span className="legend-item">
-                  <span className="legend-box marketplace"></span>
-                  Marketplace
-                </span>
+              {/* Inventory Distribution */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <h3>Inventory Distribution</h3>
+                  <div className="chart-legend">
+                    <span className="legend-item">
+                      <span className="legend-box warehouse"></span>
+                      Warehouse
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-box marketplace"></span>
+                      Marketplace
+                    </span>
+                  </div>
+                </div>
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={distributionData}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                      barCategoryGap={10}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#2a2e3a"
+                        horizontal={false}
+                      />
+
+                      <XAxis
+                        type="number"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#6b7280", fontSize: 11 }}
+                        domain={[0, Math.max(...distributionData.map(d => Math.max(d.warehouse, d.marketplace))) * 1.1 || 1000]}
+                      />
+
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#9ca3af", fontSize: 11 }}
+                        width={90}
+                        interval={0}
+                      />
+
+                      <Tooltip
+                        cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          border: "1px solid #334155",
+                          borderRadius: 8,
+                          color: "#fff",
+                          fontSize: 12,
+                        }}
+                        formatter={(value) => value.toLocaleString()}
+                      />
+
+                      <Bar
+                        dataKey="warehouse"
+                        fill="#3b82f6"
+                        barSize={16}
+                        radius={[0, 6, 6, 0]}
+                      />
+
+                      <Bar
+                        dataKey="marketplace"
+                        fill="#22c55e"
+                        barSize={18}
+                        radius={[0, 6, 6, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={distributionData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                  barCategoryGap={10}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#2a2e3a"
-                    horizontal={false}
-                  />
 
-                  <XAxis
-                    type="number"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 11 }}
-                    domain={[0, Math.max(...distributionData.map(d => Math.max(d.warehouse, d.marketplace))) * 1.1 || 1000]}
-                  />
-
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#9ca3af", fontSize: 11 }}
-                    width={90}
-                    interval={0}
-                  />
-
-                  <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      border: "1px solid #334155",
-                      borderRadius: 8,
-                      color: "#fff",
-                      fontSize: 12,
-                    }}
-                    formatter={(value) => value.toLocaleString()}
-                  />
-
-                  <Bar
-                    dataKey="warehouse"
-                    fill="#3b82f6"
-                    barSize={16}
-                    radius={[0, 6, 6, 0]}
-                  />
-
-                  <Bar
-                    dataKey="marketplace"
-                    fill="#22c55e"
-                    barSize={18}
-                    radius={[0, 6, 6, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Quick Commerce Speed */}
-          <div className="chart-card">
-            <div className="chart-header">
-              <h3>Quick Commerce Speed</h3>
-              <div className="units-label">
-                <TrendingUp size={12} />
-                Units/Day
+              {/* Quick Commerce Speed */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <h3>Quick Commerce Speed</h3>
+                  <div className="units-label">
+                    <TrendingUp size={12} />
+                    Units/Day
+                  </div>
+                </div>
+                <div className="commerce-container">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={commerceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
+                        angle={0}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                        domain={[0, Math.max(...commerceData.map(d => d.units)) * 1.2 || 100]}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1f2937',
+                          border: '1px solid #374151',
+                          borderRadius: '6px',
+                          color: '#fff'
+                        }}
+                        formatter={(value) => [value, 'Speed']}
+                        labelFormatter={(label) => label}
+                      />
+                      <Bar
+                        dataKey="units"
+                        fill="#00cd6b"
+                        radius={[4, 4, 0, 0]}
+                        barSize={70}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
-            <div className="commerce-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={commerceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2e3a" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 10 }}
-                    angle={0}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 11 }}
-                    domain={[0, Math.max(...commerceData.map(d => d.units)) * 1.2 || 100]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1f2937',
-                      border: '1px solid #374151',
-                      borderRadius: '6px',
-                      color: '#fff'
-                    }}
-                  />
-                  <Bar
-                    dataKey="units"
-                    fill="#00cd6b"
-                    radius={[4, 4, 0, 0]}
-                    barSize={70}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

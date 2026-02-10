@@ -446,16 +446,18 @@ body {
 
 .table-container {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   margin-top: 12px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-  max-height: 400px;
+  max-height: 600px;
+  position: relative;
 }
 
 .table-container::-webkit-scrollbar {
+  width: 8px;
   height: 8px;
 }
 
@@ -464,26 +466,36 @@ body {
   border-radius: 6px;
 }
 
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 /* =========================
    TABLE BASE
 ========================= */
 
 .inventory-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 1400px;
 }
 
 /* =========================
-   TABLE HEADER
+   TABLE HEADER (STICKY)
 ========================= */
 
 .inventory-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: linear-gradient(180deg, #1c2030, #181c29);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .inventory-table th {
+  position: sticky;
+  top: 0;
   padding: 12px 14px;
   text-align: left;
   font-size: 10.5px;
@@ -492,6 +504,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.4px;
   white-space: nowrap;
+  background: linear-gradient(180deg, #1c2030, #181c29);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* =========================
