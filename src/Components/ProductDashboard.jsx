@@ -78,26 +78,11 @@ const ProductDashboard = () => {
 
   const getBrandFromEAN = (ean) => {
     if (!ean) return 'Unknown Brand';
-    // Simple mapping - adjust based on your actual EAN patterns
-    if (ean.startsWith('890435')) return 'Urban Gabru';
-    if (ean.startsWith('890913')) return 'Seoul Skin';
-    if (ean.startsWith('890572')) return 'Urban Yog';
-    if (ean.startsWith('300000')) return 'Makemeebold';
     return 'Unknown Brand';
-  };
-
-  const getVendorFromStatus = (item) => {
-    if (!item || !item.ean_code) return 'Unknown';
-    // Placeholder - adjust based on your actual vendor data
-    if (item.ean_code.startsWith('890435')) return 'Hive';
-    if (item.ean_code.startsWith('890913')) return 'Merhaki';
-    if (item.ean_code.startsWith('300000')) return 'Brand';
-    return 'Assure';
   };
 
   const calculatePOIntent = (item) => {
     if (!item) return '0';
-    // Calculate PO intent based on safety stock and current stock
     const drr = parseFloat(item.drr_30d) || 0;
     const safetyStock = parseFloat(item.safety_stock_days || 0) * drr;
     const poIntent = Math.max(0, safetyStock - (item.current_stock || 0));
@@ -151,7 +136,7 @@ const ProductDashboard = () => {
       const queryString = queryParams.toString();
       const url = `http://localhost:5000/api/planning${queryString ? '?' + queryString : ''}`;
       
-      console.log('Fetching data from:', url); // Debug log
+      console.log('Fetching data from:', url);
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -169,11 +154,11 @@ const ProductDashboard = () => {
           },
           vendor: {
             ...prev.vendor,
-            options: data.filters.vendors?.filter(v => v && v.trim() !== '') || []
+            options: data.filters.vendors || []
           },
           location: {
             ...prev.location,
-            options: data.filters.locations?.filter(loc => loc) || []
+            options: data.filters.locations || []
           },
           category: {
             ...prev.category,
@@ -200,7 +185,6 @@ const ProductDashboard = () => {
     {
       title: 'TOTAL STOCK',
       value: formatNumber(apiData.summary.total_stock),
-      // change: '1.2% vs last week',
       icon: <Box size={20} />,
       color: '#3b82f6',
       bgColor: 'rgba(59, 130, 246, 0.1)',
@@ -282,79 +266,72 @@ const ProductDashboard = () => {
     }
   ] : [];
 
-// Transform API SKU data to match table structure
-const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
-  // Use inventory_status from API directly, but map to your frontend statuses
-  let stockStatus = 'good';
-  
-  // Map API statuses to your frontend statuses
-  switch(item.inventory_status) {
-    case 'LOW_STOCK':
-      stockStatus = 'low';
-      break;
-    case 'PO_REQUIRED':
-      stockStatus = 'po';
-      break;
-    case 'ZERO_STOCK': // If API has this status
-    default:
-      if (item.current_stock === 0) {
-        stockStatus = 'zero';
+  // Transform API SKU data to match table structure
+  const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
+    let stockStatus = 'good';
+    
+    switch(item.inventory_status) {
+      case 'LOW_STOCK':
+        stockStatus = 'low';
+        break;
+      case 'PO_REQUIRED':
+        stockStatus = 'po';
+        break;
+      case 'ZERO_STOCK':
+      default:
+        if (item.current_stock === 0) {
+          stockStatus = 'zero';
+        }
+        break;
+    }
+
+    let coverStatus = 'good';
+    const daysCover = parseFloat(item.days_of_cover) || 0;
+    if (daysCover <= 0) coverStatus = 'zero';
+    else if (daysCover <= 14) coverStatus = 'low';
+
+    const brand = item.brand || getBrandFromEAN(item.ean_code);
+    
+    let poIntentDisplay = '—';
+    let poIntentIcon = false;
+    
+    if (item.po_intent_units !== undefined && item.po_intent_units !== null) {
+      const poIntentValue = parseFloat(item.po_intent_units);
+      if (!isNaN(poIntentValue) && poIntentValue > 0) {
+        poIntentDisplay = {
+          value: formatNumber(Math.round(poIntentValue)),
+          icon: true
+        };
+        poIntentIcon = true;
       }
-      break;
-  }
-
-  // Determine cover status based on days_of_cover
-  let coverStatus = 'good';
-  const daysCover = parseFloat(item.days_of_cover) || 0;
-  if (daysCover <= 0) coverStatus = 'zero';
-  else if (daysCover <= 14) coverStatus = 'low';
-
-  // Use brand from API response, fallback to EAN-based detection
-  const brand = item.brand || getBrandFromEAN(item.ean_code);
-  
-  // Determine PO Intent - use po_intent_units from API if available
-  let poIntentDisplay = '—';
-  let poIntentIcon = false;
-  
-  if (item.po_intent_units !== undefined && item.po_intent_units !== null) {
-    // If po_intent_units exists and has a value
-    const poIntentValue = parseFloat(item.po_intent_units);
-    if (!isNaN(poIntentValue) && poIntentValue > 0) {
+    } else if (item.inventory_status === 'PO_REQUIRED') {
       poIntentDisplay = {
-        value: formatNumber(Math.round(poIntentValue)),
+        value: calculatePOIntent(item),
         icon: true
       };
       poIntentIcon = true;
     }
-  } else if (item.inventory_status === 'PO_REQUIRED') {
-    // Fallback to calculation if po_intent_units is not available but PO is required
-    poIntentDisplay = {
-      value: calculatePOIntent(item),
-      icon: true
+    
+    return {
+      brand: brand,
+      sku: item.ean_code || 'N/A',
+      product: item.product_title || item.ean_code || 'N/A',
+      currentStock: item.current_stock || 0,
+      speed: Math.round(parseFloat(item.drr_30d) || 0),
+      daysCover: Math.round(daysCover),
+      inTransit: item.in_transit_stock || 0,
+      vendor: item.vendor_name || 'No Vendor',
+      poStatus: item.inventory_status === 'PO_REQUIRED' ? 'PO Needed' : '—',
+      poIntent: poIntentDisplay,
+      poIntentIcon: poIntentIcon,
+      upcomingStock: { 
+        value: formatNumber(item.upcoming_stock), 
+        days: '7d'
+      },
+      stockStatus: stockStatus,
+      coverStatus: coverStatus
     };
-    poIntentIcon = true;
-  }
-  
-  return {
-    brand: brand,
-    sku: item.ean_code || 'N/A',
-    product: truncateString(item.product_title || item.ean_code, 30), // Use product_title from API
-    currentStock: item.current_stock || 0,
-    speed: Math.round(parseFloat(item.drr_30d) || 0), // Using DRR as speed
-    daysCover: Math.round(daysCover),
-    inTransit: item.in_transit_stock || 0,
-    vendor: item.vendor_name || getVendorFromStatus(item), // Use vendor_name from API
-    poStatus: item.inventory_status === 'PO_REQUIRED' ? 'PO Needed' : '—',
-    poIntent: poIntentDisplay,
-    poIntentIcon: poIntentIcon, // Add this flag to check if icon should be shown
-    upcomingStock: { 
-      value: formatNumber(item.upcoming_stock), 
-      days: '7d' // Placeholder - you might want to calculate this
-    },
-    stockStatus: stockStatus,
-    coverStatus: coverStatus
-  };
-}) : [];
+  }) : [];
 
   // Days Cover Trend Data from API
   const trendData = apiData ? (apiData.summary.days_cover_trend || []).map((item, index) => ({
@@ -375,23 +352,20 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
 
   // Quick Commerce Data from API
   const commerceData = apiData ? [
-    { name: 'Instamart', units: apiData.summary.quick_commerce_speed?.instamart || 0 },
-    { name: 'Zepo', units: apiData.summary.quick_commerce_speed?.zepto || 0 },
+    { name: 'Swiggy', units: apiData.summary.quick_commerce_speed?.swiggy || 0 },
+    { name: 'Zepto', units: apiData.summary.quick_commerce_speed?.zepto || 0 },
     { name: 'Blinkit B2B', units: apiData.summary.quick_commerce_speed?.blinkit_b2b || 0 },
     { name: 'Blinkit B2C', units: apiData.summary.quick_commerce_speed?.blinkit_b2c || 0 }
   ] : [];
 
   const handleFilterChange = (key, value) => {
-    // Update the filter state
     setFilters(prev => ({ 
       ...prev, 
       [key]: { ...prev[key], value } 
     }));
     
-    // Reset to page 1 when filters change
     setCurrentPage(1);
     
-    // Build filter parameters object
     const updatedFilters = {
       ...filters,
       [key]: { ...filters[key], value }
@@ -404,12 +378,10 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
       category: updatedFilters.category.value
     };
     
-    // Fetch data with new filters and reset to page 1
     fetchData(filterParams, 1, itemsPerPage);
   };
 
   const handleRefresh = () => {
-    // Get current filter values
     const filterParams = {
       brand: filters.brand.value,
       vendor: filters.vendor.value,
@@ -432,13 +404,12 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
     
     fetchData(filterParams, newPage, itemsPerPage);
     
-    // Scroll to top of table
     document.querySelector('.table-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleItemsPerPageChange = (newLimit) => {
     setItemsPerPage(newLimit);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
     
     const filterParams = {
       brand: filters.brand.value,
@@ -508,7 +479,6 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                 key={index}
                 className="metric-card"
                 style={{
-                  // backgroundColor: metric.bgColor,
                   borderLeft: `4px solid ${metric.borderColor}`
                 }}
               >
@@ -540,7 +510,6 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
               className="alert-metric-card"
               style={{
                 borderLeft: `4px solid ${metric.borderColor}`,
-                // backgroundColor: metric.bgColor ,
               }}
             >
               <div className="alert-icon" style={{ color: metric.color, backgroundColor: `${metric.color}1A` }}>
@@ -589,8 +558,8 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                       >
                         <option value={`All ${filter.label}s`}>All {filter.label}s</option>
                         {filter.options && filter.options.map((option, index) => (
-                          <option key={index} value={option || 'Unknown'}>
-                            {option || 'Unknown'}
+                          <option key={index} value={option}>
+                            {option}
                           </option>
                         ))}
                       </select>
@@ -678,7 +647,7 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                       <td>
                         {row.poStatus === 'PO Needed' ? (
                           <button className="po-status-btn">
-                            <ShoppingCart size={12}  color='black'/>
+                            <ShoppingCart size={12} color='black'/>
                             PO Needed
                           </button>
                         ) : (
@@ -686,15 +655,15 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                         )}
                       </td>
                       <td>
-                  {row.poIntentIcon ? (
-                    <span className="po-intent-value">
-                      <TrendingUp size={12} />
-                      {typeof row.poIntent === 'object' ? row.poIntent.value : row.poIntent}
-                    </span>
-                  ) : (
-                    <span className="po-intent-empty">{row.poIntent}</span>
-                  )}
-                </td>
+                        {row.poIntentIcon ? (
+                          <span className="po-intent-value">
+                            <TrendingUp size={12} />
+                            {typeof row.poIntent === 'object' ? row.poIntent.value : row.poIntent}
+                          </span>
+                        ) : (
+                          <span className="po-intent-empty">{row.poIntent}</span>
+                        )}
+                      </td>
                       <td>
                         <span className="upcoming-stock">
                           <Package size={12} />
@@ -759,12 +728,10 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                       let startPage = Math.max(1, currentPage - 2);
                       let endPage = Math.min(totalPages, currentPage + 2);
                       
-                      // Adjust if we're near the start
                       if (currentPage <= 3) {
                         endPage = Math.min(5, totalPages);
                       }
                       
-                      // Adjust if we're near the end
                       if (currentPage >= totalPages - 2) {
                         startPage = Math.max(1, totalPages - 4);
                       }
@@ -926,7 +893,6 @@ const skuData = apiData ? (apiData.sku_inventory_details || []).map(item => {
                     radius={[0, 6, 6, 0]}
                   />
                 </BarChart>
-
               </ResponsiveContainer>
             </div>
           </div>
